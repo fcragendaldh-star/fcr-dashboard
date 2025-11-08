@@ -652,9 +652,25 @@ st.markdown("""
     
     /* Make tables scrollable on mobile */
     @media screen and (max-width: 768px) {
-        div[data-testid="stDataFrame"] {
-            overflow-x: auto;
+        div[data-testid="stDataFrame"],
+        div[data-testid="stDataFrame"] > div {
+            overflow-x: auto !important;
             -webkit-overflow-scrolling: touch;
+            width: 100% !important;
+            display: block !important;
+        }
+        
+        /* Make table cells more readable on mobile */
+        .dataframe th,
+        .dataframe td {
+            padding: 8px 6px !important;
+            font-size: 0.8rem !important;
+            white-space: nowrap;
+        }
+        
+        /* Reduce table font size */
+        .dataframe {
+            font-size: 0.75rem !important;
         }
     }
     
@@ -686,16 +702,24 @@ st.markdown("""
         /* Make legends horizontal on mobile for better readability */
         .js-plotly-plot .legend {
             position: relative !important;
+            font-size: 10px !important;
         }
         
         /* Adjust chart heights for mobile */
         .js-plotly-plot {
             min-height: 250px !important;
+            max-height: 400px !important;
         }
         
         /* Better margins for mobile charts */
         .plotly .plot-container {
             padding: 5px !important;
+        }
+        
+        /* Reduce chart font sizes on mobile */
+        .plotly .xtick text,
+        .plotly .ytick text {
+            font-size: 10px !important;
         }
     }
     
@@ -725,26 +749,42 @@ st.markdown("""
         /* Force single column layout for metrics on mobile */
         .element-container:has([data-testid="stMetric"]) {
             width: 100% !important;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.75rem;
+            padding: 0.5rem;
         }
         
-        /* Make Streamlit columns stack on mobile */
+        /* Make Streamlit columns stack on mobile - override any inline styles */
         [data-testid="column"] {
             width: 100% !important;
             flex: 1 1 100% !important;
             min-width: 100% !important;
-            margin-bottom: 1rem;
+            max-width: 100% !important;
+            margin-bottom: 1rem !important;
+            padding: 0 !important;
         }
         
-        /* Ensure row containers wrap */
+        /* Ensure row containers wrap and stack vertically */
         .row-widget.stHorizontal {
             flex-direction: column !important;
+            display: flex !important;
         }
         
         /* Settings row - stack on mobile */
         div[data-testid="column"]:has(input),
-        div[data-testid="column"]:has(button) {
+        div[data-testid="column"]:has(button),
+        div[data-testid="column"]:has(.stNumberInput),
+        div[data-testid="column"]:has(.stButton) {
             width: 100% !important;
+            flex-basis: 100% !important;
+        }
+        
+        /* Specific fixes for common column layouts */
+        div[data-testid="column"]:nth-child(1),
+        div[data-testid="column"]:nth-child(2),
+        div[data-testid="column"]:nth-child(3),
+        div[data-testid="column"]:nth-child(4) {
+            width: 100% !important;
+            flex: 1 1 100% !important;
         }
     }
     
@@ -794,6 +834,159 @@ st.markdown("""
         div[style*="background"] {
             padding: 0.75rem !important;
             margin: 0.5rem 0 !important;
+        }
+    }
+    
+    /* Additional mobile optimizations */
+    @media screen and (max-width: 768px) {
+        /* Sidebar improvements */
+        [data-testid="stSidebar"] {
+            padding: 1rem 0.75rem !important;
+        }
+        
+        /* Multiselect improvements for mobile */
+        [data-baseweb="select"] {
+            min-height: 44px !important;
+        }
+        
+        [data-baseweb="select"] input {
+            font-size: 16px !important;
+            min-height: 44px !important;
+        }
+        
+        /* Date input improvements */
+        .stDateInput > div > div > input {
+            font-size: 16px !important;
+            min-height: 44px !important;
+        }
+        
+        /* Number input improvements */
+        .stNumberInput > div > div > input {
+            font-size: 16px !important;
+            min-height: 44px !important;
+        }
+        
+        /* Tabs - make them more touch-friendly */
+        [data-baseweb="tab-list"] {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        [data-baseweb="tab"] {
+            min-width: 100px;
+            padding: 0.75rem 1rem !important;
+            font-size: 0.85rem !important;
+        }
+        
+        /* Expander/collapsible sections */
+        .streamlit-expanderHeader {
+            font-size: 0.9rem !important;
+            padding: 0.75rem !important;
+            min-height: 44px !important;
+        }
+        
+        /* Better spacing for download buttons */
+        .stDownloadButton > button {
+            width: 100% !important;
+            margin-bottom: 0.5rem;
+        }
+        
+        /* Alert and info boxes - better mobile display */
+        .stAlert,
+        .stInfo,
+        .stSuccess,
+        .stWarning,
+        .stError {
+            padding: 0.75rem !important;
+            margin: 0.75rem 0 !important;
+            font-size: 0.85rem !important;
+            line-height: 1.5 !important;
+        }
+        
+        /* Metrics - better spacing on mobile */
+        [data-testid="stMetricContainer"] {
+            padding: 0.75rem !important;
+            margin-bottom: 0.75rem !important;
+        }
+        
+        /* Reduce padding in main content area */
+        .main .block-container {
+            padding-left: 0.75rem !important;
+            padding-right: 0.75rem !important;
+        }
+        
+        /* Improve caption readability */
+        .stCaption {
+            font-size: 0.7rem !important;
+            line-height: 1.4 !important;
+        }
+        
+        /* Better spacing for markdown content */
+        .stMarkdown {
+            margin-bottom: 0.75rem !important;
+        }
+        
+        /* Ensure all text is readable */
+        .stMarkdown p,
+        .stMarkdown li,
+        .stMarkdown span {
+            font-size: 0.85rem !important;
+            line-height: 1.6 !important;
+        }
+        
+        /* Progress bars - better visibility */
+        .stProgress > div {
+            margin: 0.5rem 0 !important;
+        }
+        
+        /* Hide unnecessary elements on mobile */
+        .stApp > header {
+            padding: 0.5rem 0.75rem !important;
+        }
+        
+        /* Better button groups */
+        .stButton {
+            width: 100% !important;
+            margin-bottom: 0.5rem !important;
+        }
+        
+        /* Ensure horizontal scroll works for wide content */
+        .element-container {
+            overflow-x: visible !important;
+        }
+        
+        /* Fix for plotly charts in columns */
+        [data-testid="column"] .js-plotly-plot {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+    }
+    
+    /* Very small screens (phones in portrait) */
+    @media screen and (max-width: 480px) {
+        h1 {
+            font-size: 1.2rem !important;
+        }
+        
+        h2 {
+            font-size: 1rem !important;
+        }
+        
+        h3 {
+            font-size: 0.9rem !important;
+        }
+        
+        [data-testid="stMetricValue"] {
+            font-size: 1.25rem !important;
+        }
+        
+        .main .block-container {
+            padding-left: 0.5rem !important;
+            padding-right: 0.5rem !important;
+        }
+        
+        [data-testid="stSidebar"] {
+            padding: 0.75rem 0.5rem !important;
         }
     }
 </style>
@@ -1034,6 +1227,85 @@ group_by = st.sidebar.selectbox(
     help="Choose grouping for aggregations"
 )
 
+# Add JavaScript to auto-close multiselect dropdowns and mobile optimizations
+st.sidebar.markdown("""
+<script>
+(function() {
+    // Wait for Streamlit to be ready
+    function waitForStreamlit() {
+        if (window.parent !== window) {
+            // We're in an iframe (Streamlit app)
+            const doc = window.parent.document;
+            
+            // Function to close open multiselect dropdowns
+            function closeDropdowns() {
+                // Find all multiselect components
+                const selects = doc.querySelectorAll('[data-baseweb="select"]');
+                selects.forEach(select => {
+                    // Check if dropdown is open
+                    const popover = select.querySelector('[data-baseweb="popover"]');
+                    if (popover && popover.style.display !== 'none') {
+                        // Click outside to close
+                        const clickEvent = new MouseEvent('click', {
+                            bubbles: true,
+                            cancelable: true,
+                            view: window.parent
+                        });
+                        doc.body.dispatchEvent(clickEvent);
+                    }
+                });
+            }
+            
+            // Close dropdowns after selection (when Streamlit reruns)
+            setTimeout(closeDropdowns, 300);
+            
+            // Also listen for clicks on multiselect options
+            doc.addEventListener('click', function(e) {
+                if (e.target.closest('[data-baseweb="menu"]') || 
+                    e.target.closest('[role="option"]')) {
+                    setTimeout(closeDropdowns, 200);
+                }
+            });
+            
+            // Mobile-specific: Close sidebar when clicking outside on mobile
+            function isMobile() {
+                return window.innerWidth <= 768;
+            }
+            
+            if (isMobile()) {
+                // Close sidebar when clicking on main content area
+                const mainContent = doc.querySelector('.main');
+                if (mainContent) {
+                    mainContent.addEventListener('click', function(e) {
+                        const sidebar = doc.querySelector('[data-testid="stSidebar"]');
+                        const sidebarToggle = doc.querySelector('[data-testid="stSidebar"] button');
+                        if (sidebar && sidebarToggle && sidebar.getAttribute('aria-expanded') === 'true') {
+                            // Don't close if clicking on sidebar itself
+                            if (!e.target.closest('[data-testid="stSidebar"]')) {
+                                sidebarToggle.click();
+                            }
+                        }
+                    });
+                }
+            }
+        }
+    }
+    
+    // Try immediately and also wait for load
+    waitForStreamlit();
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', waitForStreamlit);
+    } else {
+        window.addEventListener('load', waitForStreamlit);
+    }
+    
+    // Handle window resize for mobile detection
+    window.addEventListener('resize', function() {
+        waitForStreamlit();
+    });
+})();
+</script>
+""", unsafe_allow_html=True)
 
 # Developer credit in sidebar
 st.sidebar.divider()
@@ -1093,33 +1365,55 @@ with tab1:
     if latest_snapshot.empty:
         st.warning("No data available for the selected date range/filters.")
     else:
-        # Calculate key metrics
-        total_latest = int(latest_snapshot["Total"].sum())
-        total_previous = int(previous_snapshot["Total"].sum()) if not previous_snapshot.empty else 0
+        # Ensure Total is numeric before all calculations
+        latest_snapshot_clean = latest_snapshot.copy()
+        latest_snapshot_clean["Total"] = pd.to_numeric(latest_snapshot_clean["Total"], errors="coerce").fillna(0).astype(float)
+        
+        previous_snapshot_clean = previous_snapshot.copy() if not previous_snapshot.empty else pd.DataFrame()
+        if not previous_snapshot_clean.empty:
+            previous_snapshot_clean["Total"] = pd.to_numeric(previous_snapshot_clean["Total"], errors="coerce").fillna(0).astype(float)
+        
+        # Calculate key metrics - use grouped data for consistency
+        snapshot_grouped = latest_snapshot_clean.groupby("Sub Division", as_index=False)["Total"].sum()
+        snapshot_grouped["Total"] = pd.to_numeric(snapshot_grouped["Total"], errors="coerce").fillna(0).astype(float)
+        total_latest = float(snapshot_grouped["Total"].sum())
+        
+        # Calculate previous total from grouped data
+        if not previous_snapshot_clean.empty:
+            previous_grouped = previous_snapshot_clean.groupby("Sub Division", as_index=False)["Total"].sum()
+            previous_grouped["Total"] = pd.to_numeric(previous_grouped["Total"], errors="coerce").fillna(0).astype(float)
+            total_previous = float(previous_grouped["Total"].sum())
+        else:
+            total_previous = 0.0
+        
         total_change = calculate_change(total_latest, total_previous)
         
-        num_subdivisions = latest_snapshot["Sub Division"].nunique()
-        num_officers = latest_snapshot["Officer"].nunique()
+        num_subdivisions = latest_snapshot_clean["Sub Division"].nunique()
+        num_officers = latest_snapshot_clean["Officer"].nunique()
         avg_per_subdivision = total_latest / num_subdivisions if num_subdivisions > 0 else 0
         
-        # Top 3 sub-divisions
-        snapshot_grouped = latest_snapshot.groupby("Sub Division", as_index=False)["Total"].sum().sort_values("Total", ascending=False)
+        # Top 3 sub-divisions - sort grouped data
+        snapshot_grouped = snapshot_grouped.sort_values("Total", ascending=False, ignore_index=True)
         top3_subdivisions = snapshot_grouped.head(3)
         
-        # Alerts
-        alert_df = latest_snapshot[latest_snapshot["Total"] > threshold]
-        num_alerts = alert_df["Sub Division"].nunique() if not alert_df.empty else 0
+        # Alerts - group by Sub Division FIRST, then filter by threshold
+        # This ensures we count sub-divisions based on their total pendency, not individual officer levels
+        alerts_grouped = latest_snapshot_clean.groupby("Sub Division", as_index=False)["Total"].sum()
+        alerts_grouped["Total"] = pd.to_numeric(alerts_grouped["Total"], errors="coerce").fillna(0).astype(float)
+        alert_df = alerts_grouped[alerts_grouped["Total"] > threshold]
+        num_alerts = len(alert_df) if not alert_df.empty else 0
         
-        # Top pendency type
+        # Top pendency type - use cleaned snapshot
         pendency_columns = [
             "Uncontested Pendency", "Income Certificate", "Copying Service",
             "Inspection Records", "Overdue Mortgage", "Overdue Court Orders",
             "Overdue Fardbadars"
         ]
-        available_pendency_cols = [col for col in pendency_columns if col in latest_snapshot.columns]
+        available_pendency_cols = [col for col in pendency_columns if col in latest_snapshot_clean.columns]
         pendency_totals = {}
         for col in available_pendency_cols:
-            pendency_totals[col] = int(latest_snapshot[col].sum())
+            # Convert to numeric and sum
+            pendency_totals[col] = float(pd.to_numeric(latest_snapshot_clean[col], errors="coerce").fillna(0).sum())
         top_pendency_type = max(pendency_totals.items(), key=lambda x: x[1]) if pendency_totals else ("N/A", 0)
         
         # Key Metrics Row - Clean
@@ -1157,8 +1451,8 @@ with tab1:
             
             with filter_col1:
                 # Get unique tehsils from latest snapshot
-                if "Tehsil/Sub Tehsil" in latest_snapshot.columns:
-                    tehsil_options = ["All"] + sorted(latest_snapshot["Tehsil/Sub Tehsil"].dropna().unique().astype(str).tolist())
+                if "Tehsil/Sub Tehsil" in latest_snapshot_clean.columns:
+                    tehsil_options = ["All"] + sorted(latest_snapshot_clean["Tehsil/Sub Tehsil"].dropna().unique().astype(str).tolist())
                     selected_tehsil = st.selectbox(
                         "📍 Select Sub Tehsil",
                         options=tehsil_options,
@@ -1187,7 +1481,7 @@ with tab1:
             with filter_col3:
                 st.markdown("<br>", unsafe_allow_html=True)  # Spacing
                 # Calculate and display the count
-                filtered_data = latest_snapshot.copy()
+                filtered_data = latest_snapshot_clean.copy()
                 
                 # Filter by tehsil
                 if selected_tehsil != "All" and "Tehsil/Sub Tehsil" in filtered_data.columns:
@@ -1337,10 +1631,10 @@ with tab1:
             # Top Officers with Most Pendencies
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown("### 👤 Top 5 Officers by Pendency")
-            if not latest_snapshot.empty:
+            if not latest_snapshot_clean.empty:
                 # Sort by Total descending and take top 5 rows
                 # Each row represents a unique officer-location combination
-                top_officers = latest_snapshot.nlargest(5, "Total")
+                top_officers = latest_snapshot_clean.nlargest(5, "Total")
                 
                 if not top_officers.empty:
                     # Define distinct colors for top 5 officers
@@ -1402,11 +1696,10 @@ with tab1:
             st.markdown("<br>", unsafe_allow_html=True)
             
             # Top alert sub-division - clear styling
+            # alert_df is already grouped and filtered, so we can use it directly
             if not alert_df.empty:
-                # Ensure proper numeric sorting for highest alert
-                top_alert = alert_df.groupby("Sub Division", as_index=False)["Total"].sum()
-                top_alert["Total"] = pd.to_numeric(top_alert["Total"], errors="coerce").fillna(0)
-                top_alert = top_alert.sort_values("Total", ascending=False, ignore_index=True).head(1)
+                # Sort by Total to get the highest alert (already numeric from grouping)
+                top_alert = alert_df.sort_values("Total", ascending=False, ignore_index=True).head(1)
                 if not top_alert.empty:
                     st.markdown(f"<p style='font-weight: 600; color: #003366; margin: 0.5rem 0;'>Highest Alert:</p>", unsafe_allow_html=True)
                     st.markdown(f"<p style='font-size: 1rem; font-weight: 600; color: #333; margin: 0.5rem 0;'>{top_alert.iloc[0]['Sub Division']}</p>", unsafe_allow_html=True)
@@ -1490,14 +1783,15 @@ with tab1:
                 st.info("No data available")
         
         # Heatmap: Sub Division vs Pendency Types
-        if available_pendency_cols and not latest_snapshot.empty:
+        if available_pendency_cols and not latest_snapshot_clean.empty:
             st.markdown("### 🔥 Heatmap: Sub Division vs Pendency Types")
             heatmap_data = []
-            for subdiv in latest_snapshot["Sub Division"].dropna().unique()[:15]:  # Top 15
-                subdiv_df = latest_snapshot[latest_snapshot["Sub Division"] == subdiv]
+            for subdiv in latest_snapshot_clean["Sub Division"].dropna().unique()[:15]:  # Top 15
+                subdiv_df = latest_snapshot_clean[latest_snapshot_clean["Sub Division"] == subdiv]
                 row = {"Sub Division": subdiv}
                 for pcol in available_pendency_cols:
-                    row[pcol] = int(subdiv_df[pcol].sum())
+                    # Convert to numeric before summing
+                    row[pcol] = float(pd.to_numeric(subdiv_df[pcol], errors="coerce").fillna(0).sum())
                 heatmap_data.append(row)
             
             if heatmap_data:
@@ -1527,8 +1821,8 @@ with tab1:
                 # Add expandable section with officer details
                 with st.expander("📋 View Officers Responsible for Each Sub-Division and Pendency Type"):
                     officer_details = []
-                    for subdiv in latest_snapshot["Sub Division"].dropna().unique()[:15]:
-                        subdiv_df = latest_snapshot[latest_snapshot["Sub Division"] == subdiv]
+                    for subdiv in latest_snapshot_clean["Sub Division"].dropna().unique()[:15]:
+                        subdiv_df = latest_snapshot_clean[latest_snapshot_clean["Sub Division"] == subdiv]
                         for pcol in available_pendency_cols:
                             officers_with_pendency = subdiv_df[subdiv_df[pcol] > 0]
                             if not officers_with_pendency.empty:
@@ -1587,271 +1881,284 @@ with tab1:
 with tab2:
     st.markdown("## 📈 Total Pendency Summary")
     
-    # Group by Sub Division for charts - ensure proper numeric sorting
-    snapshot_grouped = latest_snapshot.groupby("Sub Division", as_index=False)["Total"].sum()
-    # Ensure Total is numeric before sorting
-    snapshot_grouped["Total"] = pd.to_numeric(snapshot_grouped["Total"], errors="coerce").fillna(0).astype(float)
-    # Sort by Total in descending order (highest first)
-    snapshot_grouped = snapshot_grouped.sort_values("Total", ascending=False, ignore_index=True)
-
-    # Layout: Left charts, right KPIs
-    left, right = st.columns([3,1])
-
-    with left:
-        # Bar chart: Total pendency by Sub Division (latest)
-        st.markdown(f"### 📊 Total Pendency by Sub Division — {latest_date.date() if pd.notna(latest_date) else 'Latest'}")
-        if not snapshot_grouped.empty:
-            fig_bar = px.bar(
-                snapshot_grouped, x="Sub Division", y="Total",
-                title="Total by Sub Division",
-                labels={"Total": "Total Pendency"},
-                color="Total",
-                color_continuous_scale="Blues",
-                text="Total"
-            )
-            fig_bar.update_traces(texttemplate='%{text:,}', textposition='outside')
-            fig_bar.update_layout(
-                xaxis={'categoryorder': 'total descending'},
-                height=450,
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                autosize=True,
-                margin=dict(l=50, r=20, t=30, b=100),
-                xaxis_gridcolor='rgba(128,128,128,0.2)',
-                yaxis_gridcolor='rgba(128,128,128,0.2)'
-            )
-            fig_bar.update_xaxes(tickangle=45)
-            st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False, 'responsive': True})
+    if latest_snapshot.empty:
+        st.warning("No data available for the selected date range/filters.")
+    else:
+        # Ensure Total is numeric before all calculations (same method as tab1)
+        latest_snapshot_clean_tab2 = latest_snapshot.copy()
+        latest_snapshot_clean_tab2["Total"] = pd.to_numeric(latest_snapshot_clean_tab2["Total"], errors="coerce").fillna(0).astype(float)
+        
+        previous_snapshot_clean_tab2 = previous_snapshot.copy() if not previous_snapshot.empty else pd.DataFrame()
+        if not previous_snapshot_clean_tab2.empty:
+            previous_snapshot_clean_tab2["Total"] = pd.to_numeric(previous_snapshot_clean_tab2["Total"], errors="coerce").fillna(0).astype(float)
+        
+        # Group by Sub Division for charts - ensure proper numeric sorting (same method as tab1)
+        snapshot_grouped = latest_snapshot_clean_tab2.groupby("Sub Division", as_index=False)["Total"].sum()
+        snapshot_grouped["Total"] = pd.to_numeric(snapshot_grouped["Total"], errors="coerce").fillna(0).astype(float)
+        # Sort by Total in descending order (highest first)
+        snapshot_grouped = snapshot_grouped.sort_values("Total", ascending=False, ignore_index=True)
+        
+        # Calculate total_latest from grouped data for consistency (same as tab1)
+        total_latest_tab2 = float(snapshot_grouped["Total"].sum())
+        
+        # Calculate previous total from grouped data
+        if not previous_snapshot_clean_tab2.empty:
+            previous_grouped_tab2 = previous_snapshot_clean_tab2.groupby("Sub Division", as_index=False)["Total"].sum()
+            previous_grouped_tab2["Total"] = pd.to_numeric(previous_grouped_tab2["Total"], errors="coerce").fillna(0).astype(float)
+            total_previous_tab2 = float(previous_grouped_tab2["Total"].sum())
         else:
-            st.info("No data for the selected date range/filters.")
-
-        # Trend
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("### 📈 District Total Trend")
-        total_trend = agg_by_sub.groupby("__date", as_index=False)["Total"].sum().sort_values("__date")
-        if not total_trend.empty:
-            fig_line = px.line(
-                total_trend, x="__date", y="Total", markers=True,
-                title="Total Pendency over time",
-                color_discrete_sequence=['#2E86AB']
-            )
-            fig_line.update_traces(
-                line=dict(width=3),
-                marker=dict(size=8)
-            )
-            fig_line.update_layout(
-                xaxis_title="Date",
-                yaxis_title="Total Pendency",
-                height=350,
-                plot_bgcolor='rgba(0,0,0,0)',
-                paper_bgcolor='rgba(0,0,0,0)',
-                autosize=True,
-                margin=dict(l=50, r=20, t=30, b=50),
-                xaxis=dict(
-                    dtick=86400000,  # Daily scale (milliseconds in a day)
-                    tickformat="%Y-%m-%d",  # Date format
-                    tickmode="linear",
-                    gridcolor='rgba(128,128,128,0.2)'
-                ),
-                yaxis=dict(gridcolor='rgba(128,128,128,0.2)')
-            )
-            st.plotly_chart(fig_line, use_container_width=True, config={'displayModeBar': False, 'responsive': True})
-        else:
-            st.info("No trend data for the selected date range/filters.")
+            total_previous_tab2 = 0.0
         
-        # Pendency Types Breakdown by Sub Division
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("### 📊 Pendency Types Breakdown by Sub Division")
+        total_change_tab2 = calculate_change(total_latest_tab2, total_previous_tab2)
         
-        # Get available pendency columns
-        pendency_columns = [
-            "Uncontested Pendency", "Income Certificate", "Copying Service",
-            "Inspection Records", "Overdue Mortgage", "Overdue Court Orders",
-            "Overdue Fardbadars"
-        ]
-        available_pendency_cols = [col for col in pendency_columns if col in latest_snapshot.columns]
+        # Layout: Left charts, right KPIs
+        left, right = st.columns([3,1])
         
-        if available_pendency_cols and not latest_snapshot.empty:
-            # Prepare data for stacked bar chart
-            breakdown_data = []
-            for subdiv in latest_snapshot["Sub Division"].dropna().unique():
-                subdiv_df = latest_snapshot[latest_snapshot["Sub Division"] == subdiv]
-                row = {"Sub Division": subdiv}
-                for pcol in available_pendency_cols:
-                    row[pcol] = int(subdiv_df[pcol].sum())
-                breakdown_data.append(row)
-            
-            if breakdown_data:
-                breakdown_df = pd.DataFrame(breakdown_data)
-                # Sort by total pendency (descending)
-                breakdown_df["Total"] = breakdown_df[available_pendency_cols].sum(axis=1)
-                breakdown_df = breakdown_df.sort_values("Total", ascending=False).head(15)  # Top 15
-                breakdown_df = breakdown_df.drop("Total", axis=1)
-                
-                # Create stacked bar chart
-                fig_stacked = px.bar(
-                    breakdown_df,
-                    x="Sub Division",
-                    y=available_pendency_cols,
-                    title="Pendency Types Distribution by Sub Division",
-                    labels={"value": "Pendency Count", "Sub Division": "Sub Division"},
-                    color_discrete_sequence=px.colors.qualitative.Set3
+        with left:
+            # Bar chart: Total pendency by Sub Division (latest)
+            st.markdown(f"### 📊 Total Pendency by Sub Division — {latest_date.date() if pd.notna(latest_date) else 'Latest'}")
+            if not snapshot_grouped.empty:
+                fig_bar = px.bar(
+                    snapshot_grouped, x="Sub Division", y="Total",
+                    title="Total by Sub Division",
+                    labels={"Total": "Total Pendency"},
+                    color="Total",
+                    color_continuous_scale="Blues",
+                    text="Total"
                 )
-                fig_stacked.update_layout(
+                fig_bar.update_traces(texttemplate='%{text:,}', textposition='outside')
+                fig_bar.update_layout(
                     xaxis={'categoryorder': 'total descending'},
                     height=450,
                     plot_bgcolor='rgba(0,0,0,0)',
                     paper_bgcolor='rgba(0,0,0,0)',
                     autosize=True,
-                    margin=dict(l=50, r=120, t=30, b=100),
+                    margin=dict(l=50, r=20, t=30, b=100),
                     xaxis_gridcolor='rgba(128,128,128,0.2)',
-                    yaxis_gridcolor='rgba(128,128,128,0.2)',
-                    legend=dict(orientation="v", yanchor="top", y=1, xanchor="left", x=1.02)
+                    yaxis_gridcolor='rgba(128,128,128,0.2)'
                 )
-                # Adjust legend for mobile (horizontal at bottom) vs desktop (vertical on right)
-                # CSS will handle responsive legend positioning
-                fig_stacked.update_xaxes(tickangle=45)
-                st.plotly_chart(fig_stacked, use_container_width=True, config={'displayModeBar': False, 'responsive': True})
+                fig_bar.update_xaxes(tickangle=45)
+                st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False, 'responsive': True})
             else:
-                st.info("No breakdown data available")
-        else:
-            st.info("Pendency type data not available")
+                st.info("No data for the selected date range/filters.")
 
-    with right:
-        st.markdown("### 📊 Key Metrics")
-        total_latest = int(latest_snapshot["Total"].sum()) if not latest_snapshot.empty else 0
-        total_previous = int(previous_snapshot["Total"].sum()) if not previous_snapshot.empty else 0
-        total_change = calculate_change(total_latest, total_previous)
-        
-        # Metrics with trends
-        delta_text = f"{total_change:+.1f}%" if previous_date else None
-        delta_color = "inverse" if total_change > 0 else "normal"
-        st.metric("District Total", format_number(total_latest), delta=delta_text, delta_color=delta_color)
-        if previous_date:
-            st.caption(f"vs {previous_date.strftime('%b %d')}")
-        
-        st.metric("Sub Divisions", latest_snapshot["Sub Division"].nunique())
-        st.metric("Officers", latest_snapshot["Officer"].nunique())
-        
-        # Alerts
+            # Trend
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("### 📈 District Total Trend")
+            total_trend = agg_by_sub.groupby("__date", as_index=False)["Total"].sum().sort_values("__date")
+            if not total_trend.empty:
+                fig_line = px.line(
+                    total_trend, x="__date", y="Total", markers=True,
+                    title="Total Pendency over time",
+                    color_discrete_sequence=['#2E86AB']
+                )
+                fig_line.update_traces(
+                    line=dict(width=3),
+                    marker=dict(size=8)
+                )
+                fig_line.update_layout(
+                    xaxis_title="Date",
+                    yaxis_title="Total Pendency",
+                    height=350,
+                    plot_bgcolor='rgba(0,0,0,0)',
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    autosize=True,
+                    margin=dict(l=50, r=20, t=30, b=50),
+                    xaxis=dict(
+                        dtick=86400000,  # Daily scale (milliseconds in a day)
+                        tickformat="%Y-%m-%d",  # Date format
+                        tickmode="linear",
+                        gridcolor='rgba(128,128,128,0.2)'
+                    ),
+                    yaxis=dict(gridcolor='rgba(128,128,128,0.2)')
+                )
+                st.plotly_chart(fig_line, use_container_width=True, config={'displayModeBar': False, 'responsive': True})
+            else:
+                st.info("No trend data for the selected date range/filters.")
+            
+            # Pendency Types Breakdown by Sub Division
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("### 📊 Pendency Types Breakdown by Sub Division")
+            
+            # Get available pendency columns
+            pendency_columns = [
+                "Uncontested Pendency", "Income Certificate", "Copying Service",
+                "Inspection Records", "Overdue Mortgage", "Overdue Court Orders",
+                "Overdue Fardbadars"
+            ]
+            available_pendency_cols = [col for col in pendency_columns if col in latest_snapshot_clean_tab2.columns]
+            
+            if available_pendency_cols and not latest_snapshot_clean_tab2.empty:
+                # Prepare data for stacked bar chart - use cleaned snapshot
+                breakdown_data = []
+                for subdiv in latest_snapshot_clean_tab2["Sub Division"].dropna().unique():
+                    subdiv_df = latest_snapshot_clean_tab2[latest_snapshot_clean_tab2["Sub Division"] == subdiv]
+                    row = {"Sub Division": subdiv}
+                    for pcol in available_pendency_cols:
+                        # Convert to numeric before summing
+                        row[pcol] = float(pd.to_numeric(subdiv_df[pcol], errors="coerce").fillna(0).sum())
+                    breakdown_data.append(row)
+                
+                if breakdown_data:
+                    breakdown_df = pd.DataFrame(breakdown_data)
+                    # Sort by total pendency (descending) - ensure numeric
+                    breakdown_df["Total"] = pd.to_numeric(breakdown_df[available_pendency_cols].sum(axis=1), errors="coerce").fillna(0)
+                    breakdown_df = breakdown_df.sort_values("Total", ascending=False, ignore_index=True).head(15)  # Top 15
+                    breakdown_df = breakdown_df.drop("Total", axis=1)
+                    
+                    # Create stacked bar chart
+                    fig_stacked = px.bar(
+                        breakdown_df,
+                        x="Sub Division",
+                        y=available_pendency_cols,
+                        title="Pendency Types Distribution by Sub Division",
+                        labels={"value": "Pendency Count", "Sub Division": "Sub Division"},
+                        color_discrete_sequence=px.colors.qualitative.Set3
+                    )
+                    fig_stacked.update_layout(
+                        xaxis={'categoryorder': 'total descending'},
+                        height=450,
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        autosize=True,
+                        margin=dict(l=50, r=120, t=30, b=100),
+                        xaxis_gridcolor='rgba(128,128,128,0.2)',
+                        yaxis_gridcolor='rgba(128,128,128,0.2)',
+                        legend=dict(orientation="v", yanchor="top", y=1, xanchor="left", x=1.02)
+                    )
+                    # Adjust legend for mobile (horizontal at bottom) vs desktop (vertical on right)
+                    # CSS will handle responsive legend positioning
+                    fig_stacked.update_xaxes(tickangle=45)
+                    st.plotly_chart(fig_stacked, use_container_width=True, config={'displayModeBar': False, 'responsive': True})
+                else:
+                    st.info("No breakdown data available")
+            else:
+                st.info("Pendency type data not available")
+
+        with right:
+            st.markdown("### 📊 Key Metrics")
+            # Use the calculated values from the cleaned data (same method as tab1)
+            delta_text = f"{total_change_tab2:+.1f}%" if previous_date else None
+            delta_color = "inverse" if total_change_tab2 > 0 else "normal"
+            st.metric("District Total", format_number(int(total_latest_tab2)), delta=delta_text, delta_color=delta_color)
+            if previous_date:
+                st.caption(f"vs {previous_date.strftime('%b %d')}")
+            
+            st.metric("Sub Divisions", latest_snapshot_clean_tab2["Sub Division"].nunique())
+            st.metric("Officers", latest_snapshot_clean_tab2["Officer"].nunique())
+            
+            # Alerts - group by Sub Division FIRST, then filter by threshold
+            # This ensures we count sub-divisions based on their total pendency, not individual officer levels
+            st.markdown("<br>", unsafe_allow_html=True)
+            st.markdown("### ⚠️ Alerts")
+            alerts_grouped_tab2 = latest_snapshot_clean_tab2.groupby("Sub Division", as_index=False)["Total"].sum()
+            alerts_grouped_tab2["Total"] = pd.to_numeric(alerts_grouped_tab2["Total"], errors="coerce").fillna(0).astype(float)
+            alert_df = alerts_grouped_tab2[alerts_grouped_tab2["Total"] > threshold]
+            if not alert_df.empty:
+                num_alerts = len(alert_df)
+                st.metric("Alerts", num_alerts, delta=f"Above {threshold}", delta_color="inverse")
+                # Show top 5 alerts with percentage - ensure proper numeric sorting
+                alerts = alert_df.sort_values("Total", ascending=False, ignore_index=True).head(5)
+                alerts["% of Total"] = (alerts["Total"] / total_latest_tab2 * 100).round(1)
+                alerts["Above Threshold"] = alerts["Total"] - threshold
+                display_alerts = alerts[["Sub Division", "Total", "% of Total", "Above Threshold"]].copy()
+                st.dataframe(display_alerts, width='stretch', hide_index=True)
+            else:
+                st.success(f"✅ No alerts (all below {threshold})")
+
+        # Comprehensive Summary Table
         st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("### ⚠️ Alerts")
-        # Ensure Total is numeric before filtering
-        latest_snapshot_copy = latest_snapshot.copy()
-        latest_snapshot_copy["Total"] = pd.to_numeric(latest_snapshot_copy["Total"], errors="coerce").fillna(0)
-        alert_df = latest_snapshot_copy[latest_snapshot_copy["Total"] > threshold]
-        if not alert_df.empty:
-            num_alerts = alert_df["Sub Division"].nunique()
-            st.metric("Alerts", num_alerts, delta=f"Above {threshold}", delta_color="inverse")
-            # show top 5 alerts with percentage - ensure proper numeric sorting
-            alerts = alert_df.groupby("Sub Division", as_index=False)["Total"].sum()
-            # Ensure Total is numeric (should already be, but double-check)
-            alerts["Total"] = pd.to_numeric(alerts["Total"], errors="coerce").fillna(0).astype(float)
-            # Sort by Total in descending order (highest first) and reset index
-            alerts = alerts.sort_values("Total", ascending=False, ignore_index=True).head(5)
-            alerts["% of Total"] = (alerts["Total"] / total_latest * 100).round(1)
-            alerts["Above Threshold"] = alerts["Total"] - threshold
-            display_alerts = alerts[["Sub Division", "Total", "% of Total", "Above Threshold"]].copy()
-            st.dataframe(display_alerts, width='stretch', hide_index=True)
-        else:
-            st.success(f"✅ No alerts (all below {threshold})")
-
-    # Comprehensive Summary Table
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("### 📋 Complete Summary Table")
-    
-    if not latest_snapshot.empty:
-        total_latest = int(latest_snapshot["Total"].sum())
+        st.markdown("### 📋 Complete Summary Table")
         
-        # Create comprehensive summary table
-        summary_table = latest_snapshot.copy()
-        
-        # Define pendency columns
-        pendency_columns = [
-            "Uncontested Pendency", "Income Certificate", "Copying Service",
-            "Inspection Records", "Overdue Mortgage", "Overdue Court Orders",
-            "Overdue Fardbadars"
-        ]
-        available_pendency_cols = [col for col in pendency_columns if col in summary_table.columns]
-        
-        # Add percentage column
-        summary_table["% of Total"] = (summary_table["Total"] / total_latest * 100).round(2)
-        
-        # Add rank if not present
-        if "Rank" not in summary_table.columns:
-            summary_table["Rank"] = summary_table["Total"].rank(ascending=False, method="dense").astype(int)
-        
-        # Add alert indicator
-        summary_table["Alert"] = summary_table["Total"].apply(lambda x: "⚠️" if x > threshold else "✅")
-        
-        # Select and order columns for display
-        display_cols = []
-        
-        # Core identification columns
-        if "Rank" in summary_table.columns:
-            display_cols.append("Rank")
-        display_cols.append("Sub Division")
-        if "Tehsil/Sub Tehsil" in summary_table.columns:
-            display_cols.append("Tehsil/Sub Tehsil")
-        display_cols.append("Officer")
-        
-        # Add all pendency type columns
-        for col in available_pendency_cols:
-            display_cols.append(col)
-        
-        # Add summary columns
-        display_cols.extend(["Total", "% of Total", "Alert"])
-        
-        # Create final table
-        final_table = summary_table[display_cols].copy()
-        
-        # Sort by Total descending (before formatting)
-        final_table = final_table.sort_values("Total", ascending=False).reset_index(drop=True)
-        
-        # Format numeric columns for display
-        final_table_display = final_table.copy()
-        for col in available_pendency_cols + ["Total"]:
-            if col in final_table_display.columns:
-                final_table_display[col] = final_table_display[col].apply(format_number)
-        
-        # Format percentage
-        if "% of Total" in final_table_display.columns:
-            final_table_display["% of Total"] = final_table_display["% of Total"].apply(lambda x: f"{x:.2f}%")
-        
-        # Add summary statistics row
-        st.markdown(f"**Total Records:** {len(final_table_display)} | **Date:** {latest_date.strftime('%B %d, %Y') if pd.notna(latest_date) else 'Latest'}")
-        
-        # Display table with search and sort
-        st.dataframe(
-            final_table_display,
+        if not latest_snapshot_clean_tab2.empty:
+            # Create comprehensive summary table - use cleaned snapshot
+            summary_table = latest_snapshot_clean_tab2.copy()
+            
+            # Define pendency columns
+            pendency_columns = [
+                "Uncontested Pendency", "Income Certificate", "Copying Service",
+                "Inspection Records", "Overdue Mortgage", "Overdue Court Orders",
+                "Overdue Fardbadars"
+            ]
+            available_pendency_cols = [col for col in pendency_columns if col in summary_table.columns]
+            
+            # Add percentage column - use total_latest_tab2 from grouped data
+            summary_table["% of Total"] = (summary_table["Total"] / total_latest_tab2 * 100).round(2)
+            
+            # Add rank if not present
+            if "Rank" not in summary_table.columns:
+                summary_table["Rank"] = summary_table["Total"].rank(ascending=False, method="dense").astype(int)
+            
+            # Add alert indicator
+            summary_table["Alert"] = summary_table["Total"].apply(lambda x: "⚠️" if x > threshold else "✅")
+            
+            # Select and order columns for display
+            display_cols = []
+            
+            # Core identification columns
+            if "Rank" in summary_table.columns:
+                display_cols.append("Rank")
+            display_cols.append("Sub Division")
+            if "Tehsil/Sub Tehsil" in summary_table.columns:
+                display_cols.append("Tehsil/Sub Tehsil")
+            display_cols.append("Officer")
+            
+            # Add all pendency type columns
+            for col in available_pendency_cols:
+                display_cols.append(col)
+            
+            # Add summary columns
+            display_cols.extend(["Total", "% of Total", "Alert"])
+            
+            # Create final table
+            final_table = summary_table[display_cols].copy()
+            
+            # Sort by Total descending (before formatting)
+            final_table = final_table.sort_values("Total", ascending=False).reset_index(drop=True)
+            
+            # Format numeric columns for display
+            final_table_display = final_table.copy()
+            for col in available_pendency_cols + ["Total"]:
+                if col in final_table_display.columns:
+                    final_table_display[col] = final_table_display[col].apply(format_number)
+            
+            # Format percentage
+            if "% of Total" in final_table_display.columns:
+                final_table_display["% of Total"] = final_table_display["% of Total"].apply(lambda x: f"{x:.2f}%")
+            
+            # Add summary statistics row
+            st.markdown(f"**Total Records:** {len(final_table_display)} | **Date:** {latest_date.strftime('%B %d, %Y') if pd.notna(latest_date) else 'Latest'}")
+            
+            # Display table with search and sort
+            st.dataframe(
+                final_table_display,
                 width='stretch',
-            hide_index=True,
-            height=400
-        )
-        
-        # Download buttons
-        col_download1, col_download2 = st.columns(2)
-        with col_download1:
-            csv_formatted = final_table_display.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                "📥 Download Formatted Table (CSV)",
-                data=csv_formatted,
-                file_name=f"fcr_summary_{latest_date.strftime('%Y%m%d')}.csv",
-                mime="text/csv",
-                width='stretch'
+                hide_index=True,
+                height=400
             )
-        with col_download2:
-            csv_raw = final_table.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                "📥 Download Raw Data (CSV)",
-                data=csv_raw,
-                file_name=f"fcr_raw_{latest_date.strftime('%Y%m%d')}.csv",
-                mime="text/csv",
-                width='stretch'
-            )
-        
-    else:
-        st.info("No latest snapshot to display.")
+            
+            # Download buttons
+            col_download1, col_download2 = st.columns(2)
+            with col_download1:
+                csv_formatted = final_table_display.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    "📥 Download Formatted Table (CSV)",
+                    data=csv_formatted,
+                    file_name=f"fcr_summary_{latest_date.strftime('%Y%m%d') if pd.notna(latest_date) else 'latest'}.csv",
+                    mime="text/csv",
+                    width='stretch'
+                )
+            with col_download2:
+                csv_raw = final_table.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    "📥 Download Raw Data (CSV)",
+                    data=csv_raw,
+                    file_name=f"fcr_raw_{latest_date.strftime('%Y%m%d') if pd.notna(latest_date) else 'latest'}.csv",
+                    mime="text/csv",
+                    width='stretch'
+                )
+        else:
+            st.info("No data available for the summary table.")
 
     # Download full combined history
     st.subheader("Download Full Historical Data")
