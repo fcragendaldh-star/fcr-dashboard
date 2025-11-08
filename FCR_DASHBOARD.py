@@ -7,7 +7,6 @@ Reads cleaned daily Excel files from Google Drive or local folder and shows:
 - Officer-level table with ranks
 - Top/Bottom performers and alerts
 - CSV export and download
-- File upload to Google Drive
 """
 
 import streamlit as st
@@ -91,8 +90,6 @@ if "pending_file_update" not in st.session_state:
     st.session_state.pending_file_update = False
 if "refresh_requested" not in st.session_state:
     st.session_state.refresh_requested = False
-if "upload_success" not in st.session_state:
-    st.session_state.upload_success = None
 
 THRESHOLD_ALERT = st.session_state.threshold_alert
 
@@ -131,37 +128,6 @@ def validate_dataframe(df: pd.DataFrame, filename: str):
         return False, f"Missing required columns: {', '.join(missing_cols)}"
     
     return True, "OK"
-
-def validate_excel_file(file) -> tuple[bool, str]:
-    """Validate uploaded Excel file"""
-    try:
-        # Check file extension
-        if not file.name.endswith(('.xlsx', '.xls')):
-            return False, "File must be an Excel file (.xlsx or .xls)"
-        
-        # Check file size (limit to 50MB)
-        if file.size > 50 * 1024 * 1024:
-            return False, "File size must be less than 50MB"
-        
-        # Try to read the file
-        try:
-            df = pd.read_excel(file, engine="openpyxl", nrows=1)
-            if df.empty:
-                return False, "File appears to be empty"
-            
-            # Check for required columns (case-insensitive)
-            required_cols = ["Sub Division", "Officer"]
-            df_cols_lower = {c.lower().strip(): c for c in df.columns}
-            missing_cols = [col for col in required_cols if col.lower() not in df_cols_lower]
-            if missing_cols:
-                return False, f"File missing required columns: {', '.join(missing_cols)}"
-        
-        except Exception as e:
-            return False, f"Error reading file: {str(e)}"
-        
-        return True, "File is valid"
-    except Exception as e:
-        return False, f"Error validating file: {str(e)}"
 
 # Core function to load and process Excel files from Google Drive or local
 def _load_all_files_core(folder_path: str = None) -> pd.DataFrame:
@@ -999,8 +965,7 @@ if df_all.empty:
         1. Check that Excel files are uploaded to your Google Drive folder
         2. Verify files have `.xlsx` or `.xls` extension
         3. Ensure files contain required columns: `Sub Division`, `Officer`, `Total`
-        4. Check the Storage Status in the sidebar for file count
-        5. Click "🔄 Reload Data" to refresh
+        4. Click "🔄 Reload Data" to refresh
         """)
     else:
         st.info("""
@@ -1012,88 +977,6 @@ if df_all.empty:
         """)
     
     st.stop()
-
-# Google Drive Status in Sidebar
-st.sidebar.header("📊 Storage Status")
-if use_google_drive and storage:
-    st.sidebar.success("✅ Google Drive Connected")
-    try:
-        drive_files = storage.list_files()
-        file_count = len(drive_files)
-        st.sidebar.info(f"📁 Files in Drive: {file_count}")
-        if file_count == 0:
-            st.sidebar.warning("⚠️ No Excel files found in Google Drive folder")
-    except Exception as e:
-        st.sidebar.error(f"❌ Error accessing Google Drive: {str(e)}")
-elif google_drive_error:
-    st.sidebar.error("❌ Google Drive Not Connected")
-    with st.sidebar.expander("🔍 Error Details"):
-        st.error(google_drive_error)
-        st.info("💡 **To fix:**\n1. Go to Streamlit Cloud Settings → Secrets\n2. Add `GOOGLE_DRIVE_FOLDER_ID`\n3. Add `GOOGLE_APPLICATION_CREDENTIALS_JSON`\n4. Wait 1-2 minutes for app to redeploy")
-else:
-    st.sidebar.info("📂 Using Local Storage")
-    if DATA_FOLDER.exists():
-        local_files = list(DATA_FOLDER.glob("*.xlsx"))
-        file_count = len([f for f in local_files if not f.name.startswith("~$")])
-        st.sidebar.info(f"📁 Local files: {file_count}")
-
-# File Upload Section in Sidebar (if Google Drive is available)
-if use_google_drive and storage:
-    st.sidebar.header("📤 Upload Excel Files")
-    
-    uploaded_file = st.sidebar.file_uploader(
-        "Choose an Excel file",
-        type=['xlsx', 'xls'],
-        help="Upload Excel files to Google Drive. Files will be automatically processed."
-    )
-    
-    if uploaded_file is not None:
-        # Validate file
-        is_valid, error_msg = validate_excel_file(uploaded_file)
-        
-        if is_valid:
-            # Show upload button
-            if st.sidebar.button("📤 Upload to Google Drive", type="primary"):
-                try:
-                    with st.sidebar.spinner("Uploading file..."):
-                        # Read file data
-                        file_data = uploaded_file.getvalue()
-                        
-                        # Upload to Google Drive
-                        file_id = storage.upload_file(file_data, uploaded_file.name)
-                        
-                        if file_id:
-                            st.sidebar.success(f"✅ File '{uploaded_file.name}' uploaded successfully!")
-                            st.session_state.upload_success = True
-                            st.session_state.refresh_requested = True
-                            
-                            # Clear cache to force reload
-                            load_all_files.clear()
-                            
-                            # Auto-refresh after a moment
-                            time.sleep(1)
-                            st.rerun()
-                        else:
-                            st.sidebar.error("❌ Failed to upload file. Please try again.")
-                            st.session_state.upload_success = False
-                except Exception as e:
-                    st.sidebar.error(f"❌ Error uploading file: {str(e)}")
-                    st.session_state.upload_success = False
-        else:
-            st.sidebar.error(f"❌ {error_msg}")
-    
-    # Show upload status
-    if st.session_state.upload_success:
-        st.sidebar.info("💡 File uploaded! Click 'Reload Data' to see changes.")
-    
-    st.sidebar.divider()
-    
-    # Show Google Drive status
-    try:
-        drive_files = storage.list_files()
-        st.sidebar.info(f"📁 {len(drive_files)} file(s) in Google Drive")
-    except:
-        pass
 
 # Filters sidebar
 st.sidebar.header("🔍 Filters")
