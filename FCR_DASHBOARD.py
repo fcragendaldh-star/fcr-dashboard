@@ -1403,7 +1403,10 @@ with tab1:
             
             # Top alert sub-division - clear styling
             if not alert_df.empty:
-                top_alert = alert_df.groupby("Sub Division", as_index=False)["Total"].sum().sort_values("Total", ascending=False).head(1)
+                # Ensure proper numeric sorting for highest alert
+                top_alert = alert_df.groupby("Sub Division", as_index=False)["Total"].sum()
+                top_alert["Total"] = pd.to_numeric(top_alert["Total"], errors="coerce").fillna(0)
+                top_alert = top_alert.sort_values("Total", ascending=False).head(1)
                 if not top_alert.empty:
                     st.markdown(f"<p style='font-weight: 600; color: #003366; margin: 0.5rem 0;'>Highest Alert:</p>", unsafe_allow_html=True)
                     st.markdown(f"<p style='font-size: 1rem; font-weight: 600; color: #333; margin: 0.5rem 0;'>{top_alert.iloc[0]['Sub Division']}</p>", unsafe_allow_html=True)
@@ -1486,9 +1489,9 @@ with tab1:
             else:
                 st.info("No data available")
         
-        # Heatmap: Sub Division vs Pendency Types
+        # Responsive Heatmap: Desktop shows heatmap, Mobile shows stacked bar chart
         if available_pendency_cols and not latest_snapshot.empty:
-            st.markdown("### 🔥 Heatmap: Sub Division vs Pendency Types")
+            st.markdown("### 🔥 Pendency by Sub Division & Type")
             heatmap_data = []
             for subdiv in latest_snapshot["Sub Division"].dropna().unique()[:15]:  # Top 15
                 subdiv_df = latest_snapshot[latest_snapshot["Sub Division"] == subdiv]
@@ -1499,27 +1502,85 @@ with tab1:
             
             if heatmap_data:
                 heatmap_df = pd.DataFrame(heatmap_data)
-                heatmap_df = heatmap_df.set_index("Sub Division")
+                heatmap_df_indexed = heatmap_df.set_index("Sub Division")
                 
-                # Create heatmap with better color contrast
-                fig_heatmap = px.imshow(
-                    heatmap_df.T,
-                    labels=dict(x="Sub Division", y="Pendency Type", color="Count"),
-                    aspect="auto",
-                    color_continuous_scale="YlOrRd",  # Light (yellow) to Dark (red) - light for low, dark for high
-                    title="Pendency Hotspots by Type and Sub Division",
-                    text_auto=True
-                )
-                fig_heatmap.update_layout(
-                    height=400,
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    autosize=True,
-                    margin=dict(l=100, r=20, t=40, b=100)
-                )
-                # Add colorbar title for clarity
-                fig_heatmap.update_coloraxes(colorbar_title="Pendency Count")
-                st.plotly_chart(fig_heatmap, use_container_width=True, config={'displayModeBar': False, 'responsive': True})
+                # Desktop: Heatmap (hidden on mobile via CSS)
+                st.markdown("""
+                <style>
+                @media screen and (max-width: 768px) {
+                    .heatmap-desktop { display: none !important; }
+                }
+                @media screen and (min-width: 769px) {
+                    .heatmap-mobile { display: none !important; }
+                }
+                </style>
+                """, unsafe_allow_html=True)
+                
+                # Desktop View: Heatmap
+                with st.container():
+                    st.markdown('<div class="heatmap-desktop">', unsafe_allow_html=True)
+                    fig_heatmap = px.imshow(
+                        heatmap_df_indexed.T,
+                        labels=dict(x="Sub Division", y="Pendency Type", color="Count"),
+                        aspect="auto",
+                        color_continuous_scale="YlOrRd",
+                        title="Pendency Hotspots by Type and Sub Division",
+                        text_auto=True
+                    )
+                    fig_heatmap.update_layout(
+                        height=400,
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        autosize=True,
+                        margin=dict(l=100, r=20, t=40, b=100)
+                    )
+                    fig_heatmap.update_coloraxes(colorbar_title="Pendency Count")
+                    st.plotly_chart(fig_heatmap, use_container_width=True, config={'displayModeBar': False, 'responsive': True})
+                    st.markdown('</div>', unsafe_allow_html=True)
+                
+                # Mobile View: Stacked Horizontal Bar Chart
+                with st.container():
+                    st.markdown('<div class="heatmap-mobile">', unsafe_allow_html=True)
+                    # Melt for stacked bar chart
+                    heatmap_melted = heatmap_df.melt(
+                        id_vars=["Sub Division"],
+                        value_vars=available_pendency_cols,
+                        var_name="Pendency Type",
+                        value_name="Count"
+                    )
+                    
+                    # Create stacked horizontal bar chart
+                    fig_stacked = px.bar(
+                        heatmap_melted,
+                        x="Count",
+                        y="Sub Division",
+                        color="Pendency Type",
+                        orientation='h',
+                        title="Pendency Breakdown by Sub Division",
+                        color_discrete_sequence=px.colors.qualitative.Set3,
+                        text="Count"
+                    )
+                    fig_stacked.update_traces(texttemplate='%{text:,}', textposition='inside')
+                    fig_stacked.update_layout(
+                        height=max(400, len(heatmap_df) * 35),  # Dynamic height based on rows
+                        plot_bgcolor='rgba(0,0,0,0)',
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        autosize=True,
+                        margin=dict(l=120, r=20, t=40, b=50),
+                        yaxis={'categoryorder': 'total ascending'},
+                        xaxis_title="Pendency Count",
+                        yaxis_title="Sub Division",
+                        legend=dict(
+                            orientation="h",
+                            yanchor="bottom",
+                            y=-0.25,
+                            xanchor="center",
+                            x=0.5,
+                            font=dict(size=10)
+                        )
+                    )
+                    st.plotly_chart(fig_stacked, use_container_width=True, config={'displayModeBar': False, 'responsive': True})
+                    st.markdown('</div>', unsafe_allow_html=True)
                 
                 # Add expandable section with officer details
                 with st.expander("📋 View Officers Responsible for Each Sub-Division and Pendency Type"):
@@ -1733,8 +1794,12 @@ with tab2:
         if not alert_df.empty:
             num_alerts = alert_df["Sub Division"].nunique()
             st.metric("Alerts", num_alerts, delta=f"Above {threshold}", delta_color="inverse")
-            # show top 5 alerts with percentage
-            alerts = alert_df.groupby("Sub Division", as_index=False)["Total"].sum().sort_values("Total", ascending=False).head(5)
+            # show top 5 alerts with percentage - ensure proper numeric sorting
+            alerts = alert_df.groupby("Sub Division", as_index=False)["Total"].sum()
+            # Convert Total to numeric to ensure proper sorting
+            alerts["Total"] = pd.to_numeric(alerts["Total"], errors="coerce").fillna(0)
+            # Sort by Total in descending order (highest first)
+            alerts = alerts.sort_values("Total", ascending=False).head(5)
             alerts["% of Total"] = (alerts["Total"] / total_latest * 100).round(1)
             alerts["Above Threshold"] = alerts["Total"] - threshold
             display_alerts = alerts[["Sub Division", "Total", "% of Total", "Above Threshold"]]
