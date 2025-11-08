@@ -78,8 +78,6 @@ else:
     DATA_FOLDER.mkdir(exist_ok=True)
 
 # Initialize session state for settings persistence
-if "threshold_alert" not in st.session_state:
-    st.session_state.threshold_alert = 50
 if "data_folder" not in st.session_state:
     st.session_state.data_folder = str(DATA_FOLDER)
 if "last_refresh_time" not in st.session_state:
@@ -90,8 +88,6 @@ if "pending_file_update" not in st.session_state:
     st.session_state.pending_file_update = False
 if "refresh_requested" not in st.session_state:
     st.session_state.refresh_requested = False
-
-THRESHOLD_ALERT = st.session_state.threshold_alert
 
 # ---------- HELPERS ----------
 
@@ -1036,52 +1032,44 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Official Title - Responsive
-st.markdown("""
-<div class="title-header" style="background-color: #f8f9fa; padding: 1rem 1.5rem; margin-bottom: 1.5rem; border-bottom: 2px solid #003366;">
-    <h1 style="color: #003366; margin: 0; padding: 0; border: none; font-size: 1.75rem; font-weight: 600;">FCR Daily Dashboard</h1>
-    <p style="color: #666; font-size: 0.95rem; margin-top: 0.25rem; margin-bottom: 0; font-weight: 400;">
-        Monitor pendency trends and performance metrics across sub-divisions and officers
-    </p>
-</div>
-""", unsafe_allow_html=True)
-
 # Use session state data folder (no user input needed)
 data_folder = st.session_state.data_folder
 DATA_FOLDER = Path(data_folder)
 
-# Settings row - only show essential controls
-col1, col2, col3 = st.columns([2, 1, 1])
-with col1:
-    threshold = st.number_input(
-        "⚠️ Alert threshold (Total >)",
-        value=int(st.session_state.threshold_alert),
-        min_value=0,
-        step=50,
-        help="Sub-divisions with Total above this value will trigger alerts"
-    )
-    # Update session state
-    st.session_state.threshold_alert = threshold
-with col2:
+# Threshold is fixed at 50 (not user-configurable)
+threshold = 50
+
+# Prominent Header with Reload Button on Right
+header_col1, header_col2 = st.columns([3, 1])
+with header_col1:
+    st.markdown("""
+    <div style="background: linear-gradient(135deg, #003366 0%, #0066cc 100%); padding: 1.5rem 2rem; margin-bottom: 1.5rem; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <h1 style="color: #ffffff; margin: 0; padding: 0; border: none; font-size: 2rem; font-weight: 700; letter-spacing: 0.5px;">FCR Daily Dashboard</h1>
+    </div>
+    """, unsafe_allow_html=True)
+
+with header_col2:
+    st.markdown("<br>", unsafe_allow_html=True)  # Spacing for alignment
     # Beautiful reload button with custom styling
     st.markdown("""
     <style>
     div[data-testid="stButton"] > button[kind="primary"][data-baseweb="button"] {
-        background-color: #0066cc !important;
-        color: white !important;
-        border: none !important;
+        background-color: #ffffff !important;
+        color: #003366 !important;
+        border: 2px solid #ffffff !important;
         border-radius: 8px !important;
-        padding: 0.5rem 1.5rem !important;
+        padding: 0.75rem 1.5rem !important;
         font-weight: 600 !important;
         font-size: 1rem !important;
         transition: all 0.3s ease !important;
-        box-shadow: 0 2px 4px rgba(31, 119, 180, 0.3) !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
         width: 100% !important;
     }
     div[data-testid="stButton"] > button[kind="primary"][data-baseweb="button"]:hover {
-        background-color: #0066cc !important;
-        box-shadow: 0 4px 8px rgba(31, 119, 180, 0.4) !important;
-        transform: translateY(-1px) !important;
+        background-color: #f0f0f0 !important;
+        color: #003366 !important;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.3) !important;
+        transform: translateY(-2px) !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -1092,9 +1080,6 @@ with col2:
         st.rerun()
     
     refresh = st.session_state.get("refresh_requested", False)
-with col3:
-    # Hidden clear cache functionality - only triggered on refresh if needed
-    pass
 
 # Generate cache key based on files in folder/Google Drive to detect new files
 if use_google_drive and storage:
@@ -1404,7 +1389,7 @@ tab1, tab2 = st.tabs(["📊 Executive Dashboard", "📈 Summary View"])
 
 # ========== TAB 1: EXECUTIVE DASHBOARD ==========
 with tab1:
-    st.header("🎯 Executive Dashboard - At a Glance")
+    st.header("📊 Brief Overview")
     
     if latest_snapshot.empty:
         st.warning("No data available for the selected date range/filters.")
@@ -1472,7 +1457,6 @@ with tab1:
         
         with col2:
             st.metric("Sub Divisions", num_subdivisions)
-            st.caption("Active divisions")
         
         with col3:
             st.metric("Avg per Division", format_number(avg_per_subdivision))
@@ -1480,10 +1464,9 @@ with tab1:
         
         with col4:
             if num_alerts > 0:
-                st.metric("⚠️ Alerts", num_alerts, delta=f"Above {threshold}", delta_color="inverse")
+                st.metric("⚠️ Alerts", num_alerts, delta="Requires attention", delta_color="inverse")
             else:
                 st.metric("✅ Alerts", "0", delta="All clear")
-            st.caption(f"Threshold: {threshold}")
         
         # Pendency Breakdown Section
         if available_pendency_cols and pendency_totals:
@@ -1748,7 +1731,6 @@ with tab1:
                     st.markdown(f"<p style='font-weight: 600; color: #003366; margin: 0.5rem 0;'>Highest Alert:</p>", unsafe_allow_html=True)
                     st.markdown(f"<p style='font-size: 1rem; font-weight: 600; color: #333; margin: 0.5rem 0;'>{top_alert.iloc[0]['Sub Division']}</p>", unsafe_allow_html=True)
                     st.markdown(f"<p style='font-size: 1.2rem; font-weight: 700; color: #003366; margin: 0.5rem 0;'>{format_number(int(top_alert.iloc[0]['Total']))}</p>", unsafe_allow_html=True)
-                    st.caption(f"{int(top_alert.iloc[0]['Total']) - threshold} above threshold")
             else:
                 st.markdown("""
                 <div style="background-color: #f0fff4; padding: 1.25rem; border: 1px solid #c3e6cb; border-left: 4px solid #28a745; border-radius: 4px;">
@@ -2100,15 +2082,14 @@ with tab2:
             alert_df = alerts_grouped_tab2[alerts_grouped_tab2["Total"] > threshold]
             if not alert_df.empty:
                 num_alerts = len(alert_df)
-                st.metric("Alerts", num_alerts, delta=f"Above {threshold}", delta_color="inverse")
+                st.metric("Alerts", num_alerts, delta="Requires attention", delta_color="inverse")
                 # Show top 5 alerts with percentage - ensure proper numeric sorting
                 alerts = alert_df.sort_values("Total", ascending=False, ignore_index=True).head(5)
                 alerts["% of Total"] = (alerts["Total"] / total_latest_tab2 * 100).round(1)
-                alerts["Above Threshold"] = alerts["Total"] - threshold
-                display_alerts = alerts[["Sub Division", "Total", "% of Total", "Above Threshold"]].copy()
+                display_alerts = alerts[["Sub Division", "Total", "% of Total"]].copy()
                 st.dataframe(display_alerts, width='stretch', hide_index=True)
             else:
-                st.success(f"✅ No alerts (all below {threshold})")
+                st.success("✅ No alerts - all sub-divisions are within acceptable limits")
 
         # Comprehensive Summary Table
         st.markdown("<br>", unsafe_allow_html=True)
@@ -2210,7 +2191,7 @@ with tab2:
     st.download_button("Download full history CSV", data=hist_csv, file_name="fcr_history.csv")
 
 
-# Footer - simplified
+# Footer - with developer credit
 st.divider()
 footer_col1, footer_col2, footer_col3 = st.columns([2, 1, 1])
 with footer_col1:
