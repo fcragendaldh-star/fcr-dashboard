@@ -156,74 +156,161 @@ def validate_excel_file(file) -> tuple[bool, str]:
 
 # Core function to load and process Excel files from Google Drive or local
 def _load_all_files_core(folder_path: str = None) -> pd.DataFrame:
-    """Core function to load all Excel files from the folder and process them."""
-    folder = Path(folder_path)
-    if not folder.exists():
-        logger.warning(f"Data folder does not exist: {folder}")
-        return pd.DataFrame()
-    
-    files = sorted(folder.glob("*.xlsx"))
-    if not files:
-        logger.info(f"No Excel files found in {folder}")
-        return pd.DataFrame()
-    
+    """Core function to load all Excel files from Google Drive or local folder and process them."""
     rows = []
     failed_files = []
     
-    for f in files:
-        # Skip temporary Excel files (lock files created by Excel when file is open)
-        if f.name.startswith("~$"):
-            continue
-        
+    # Load from Google Drive if configured
+    if use_google_drive and storage:
         try:
-            # Try to read Excel file
-            try:
-                df = pd.read_excel(f, engine="openpyxl")
-            except Exception as e:
-                logger.warning(f"Failed to read {f.name} with default sheet, trying first sheet: {e}")
-                df = pd.read_excel(f, sheet_name=0, engine="openpyxl")
+            logger.info("Loading files from Google Drive...")
+            drive_files = storage.list_files()
             
-            if df.empty:
-                logger.warning(f"File {f.name} is empty, skipping")
-                failed_files.append((f.name, "Empty file"))
-                continue
+            if not drive_files:
+                logger.info("No Excel files found in Google Drive folder")
+                return pd.DataFrame()
             
-            # Normalize column names
-            df_cols = {c.lower().strip(): c for c in df.columns}
-            
-            # Try to find and rename Total column
-            if "total" not in df_cols:
-                match = [c for c in df.columns if "total" in str(c).lower()]
-                if match:
-                    df.rename(columns={match[0]: "Total"}, inplace=True)
-            
-            # Try to find and rename Sub Division column
-            if "sub division" not in df_cols:
-                match = [c for c in df.columns if "sub" in str(c).lower() and "division" in str(c).lower()]
-                if match:
-                    df.rename(columns={match[0]: "Sub Division"}, inplace=True)
-            
-            # Validate dataframe
-            is_valid, error_msg = validate_dataframe(df, f.name)
-            if not is_valid:
-                logger.warning(f"Validation failed for {f.name}: {error_msg}")
-                failed_files.append((f.name, error_msg))
-                continue
-            
-            # Parse date from filename
-            m = FILENAME_DATE_RE.search(f.name)
-            file_date = pd.to_datetime(m.group(1), format=DATE_FORMAT) if m else pd.NaT
-            if pd.isna(file_date):
-                logger.warning(f"Could not parse date from filename: {f.name}")
-            
-            df["__source_file"] = f.name
-            df["__date"] = file_date
-            rows.append(df)
-            
+            for file_info in drive_files:
+                filename = file_info['name']
+                file_id = file_info['id']
+                
+                if filename.startswith("~$"):
+                    continue
+                
+                try:
+                    # Download file from Google Drive
+                    file_data = storage.download_file(file_id)
+                    if not file_data.getvalue():
+                        logger.warning(f"File {filename} is empty, skipping")
+                        failed_files.append((filename, "Empty file"))
+                        continue
+                    
+                    # Read Excel file from bytes
+                    try:
+                        df = pd.read_excel(file_data, engine="openpyxl")
+                    except Exception as e:
+                        logger.warning(f"Failed to read {filename} with default sheet, trying first sheet: {e}")
+                        file_data.seek(0)
+                        df = pd.read_excel(file_data, sheet_name=0, engine="openpyxl")
+                    
+                    if df.empty:
+                        logger.warning(f"File {filename} is empty, skipping")
+                        failed_files.append((filename, "Empty file"))
+                        continue
+                    
+                    # Normalize column names
+                    df_cols = {c.lower().strip(): c for c in df.columns}
+                    
+                    # Try to find and rename Total column
+                    if "total" not in df_cols:
+                        match = [c for c in df.columns if "total" in str(c).lower()]
+                        if match:
+                            df.rename(columns={match[0]: "Total"}, inplace=True)
+                    
+                    # Try to find and rename Sub Division column
+                    if "sub division" not in df_cols:
+                        match = [c for c in df.columns if "sub" in str(c).lower() and "division" in str(c).lower()]
+                        if match:
+                            df.rename(columns={match[0]: "Sub Division"}, inplace=True)
+                    
+                    # Validate dataframe
+                    is_valid, error_msg = validate_dataframe(df, filename)
+                    if not is_valid:
+                        logger.warning(f"Validation failed for {filename}: {error_msg}")
+                        failed_files.append((filename, error_msg))
+                        continue
+                    
+                    # Parse date from filename
+                    m = FILENAME_DATE_RE.search(filename)
+                    file_date = pd.to_datetime(m.group(1), format=DATE_FORMAT) if m else pd.NaT
+                    if pd.isna(file_date):
+                        logger.warning(f"Could not parse date from filename: {filename}")
+                    
+                    df["__source_file"] = filename
+                    df["__date"] = file_date
+                    rows.append(df)
+                    
+                except Exception as e:
+                    logger.error(f"Error processing file {filename}: {str(e)}")
+                    failed_files.append((filename, str(e)))
+                    continue
         except Exception as e:
-            logger.error(f"Error processing file {f.name}: {str(e)}")
-            failed_files.append((f.name, str(e)))
-            continue
+            logger.error(f"Error loading from Google Drive: {e}")
+            # Fall back to local if Google Drive fails
+            if folder_path:
+                logger.info("Falling back to local file loading...")
+            else:
+                return pd.DataFrame()
+    
+    # Load from local folder if not using Google Drive or as fallback
+    if not use_google_drive or (use_google_drive and not rows and folder_path):
+        if folder_path:
+            folder = Path(folder_path)
+            if not folder.exists():
+                logger.warning(f"Data folder does not exist: {folder}")
+                if not rows:
+                    return pd.DataFrame()
+            else:
+                files = sorted(folder.glob("*.xlsx"))
+                if not files:
+                    logger.info(f"No Excel files found in {folder}")
+                    if not rows:
+                        return pd.DataFrame()
+                else:
+                    for f in files:
+                        # Skip temporary Excel files (lock files created by Excel when file is open)
+                        if f.name.startswith("~$"):
+                            continue
+                        
+                        try:
+                            # Try to read Excel file
+                            try:
+                                df = pd.read_excel(f, engine="openpyxl")
+                            except Exception as e:
+                                logger.warning(f"Failed to read {f.name} with default sheet, trying first sheet: {e}")
+                                df = pd.read_excel(f, sheet_name=0, engine="openpyxl")
+                            
+                            if df.empty:
+                                logger.warning(f"File {f.name} is empty, skipping")
+                                failed_files.append((f.name, "Empty file"))
+                                continue
+                            
+                            # Normalize column names
+                            df_cols = {c.lower().strip(): c for c in df.columns}
+                            
+                            # Try to find and rename Total column
+                            if "total" not in df_cols:
+                                match = [c for c in df.columns if "total" in str(c).lower()]
+                                if match:
+                                    df.rename(columns={match[0]: "Total"}, inplace=True)
+                            
+                            # Try to find and rename Sub Division column
+                            if "sub division" not in df_cols:
+                                match = [c for c in df.columns if "sub" in str(c).lower() and "division" in str(c).lower()]
+                                if match:
+                                    df.rename(columns={match[0]: "Sub Division"}, inplace=True)
+                            
+                            # Validate dataframe
+                            is_valid, error_msg = validate_dataframe(df, f.name)
+                            if not is_valid:
+                                logger.warning(f"Validation failed for {f.name}: {error_msg}")
+                                failed_files.append((f.name, error_msg))
+                                continue
+                            
+                            # Parse date from filename
+                            m = FILENAME_DATE_RE.search(f.name)
+                            file_date = pd.to_datetime(m.group(1), format=DATE_FORMAT) if m else pd.NaT
+                            if pd.isna(file_date):
+                                logger.warning(f"Could not parse date from filename: {f.name}")
+                            
+                            df["__source_file"] = f.name
+                            df["__date"] = file_date
+                            rows.append(df)
+                            
+                        except Exception as e:
+                            logger.error(f"Error processing file {f.name}: {str(e)}")
+                            failed_files.append((f.name, str(e)))
+                            continue
     
     if not rows:
         if failed_files:
@@ -875,8 +962,45 @@ if not df_all.empty and current_file_hash:
 
 # Simple error message for empty data
 if df_all.empty:
-    st.error("❌ No data available. Please contact the administrator to ensure data files are properly configured.")
+    st.error("❌ No data available.")
+    
+    if use_google_drive and storage:
+        st.info(f"""
+        **Troubleshooting (Google Drive):**
+        - Ensure Excel files (`.xlsx`) are in your Google Drive folder
+        - File names should contain dates in `YYYYMMDD` format (e.g., `FCR_Agenda_20251104.xlsx`)
+        - Files should contain required columns: `Sub Division`, `Officer`, and pendency columns
+        - Verify your Google Drive folder is shared with the service account
+        - Click the **🔄 Reload Data** button to refresh
+        - Check the logs for detailed error messages
+        """)
+    else:
+        st.info(f"""
+        **Troubleshooting:**
+        - Ensure Excel files (`.xlsx`) are in the `{DATA_FOLDER.absolute()}` folder
+        - File names should contain dates in `YYYYMMDD` format (e.g., `FCR_Agenda_20251104.xlsx`)
+        - Files should contain required columns: `Sub Division`, `Officer`, and pendency columns
+        - Click the **🔄 Reload Data** button to refresh
+        - Check the logs for detailed error messages
+        
+        **💡 Tip:** To use Google Drive, configure `GOOGLE_DRIVE_FOLDER_ID` and `GOOGLE_APPLICATION_CREDENTIALS_JSON` in Streamlit Cloud secrets.
+        """)
     st.stop()
+
+# Google Drive Status in Sidebar
+if GOOGLE_DRIVE_AVAILABLE:
+    if use_google_drive and storage:
+        st.sidebar.success("✅ Google Drive: Connected")
+        try:
+            drive_files = storage.list_files()
+            st.sidebar.info(f"📁 {len(drive_files)} file(s) in Google Drive")
+        except:
+            st.sidebar.warning("⚠️ Google Drive: Could not list files")
+    else:
+        st.sidebar.warning("⚠️ Google Drive: Not configured")
+        st.sidebar.caption("Add secrets in Streamlit Cloud to enable")
+else:
+    st.sidebar.info("💡 Google Drive: Not available (dependencies missing)")
 
 # File Upload Section in Sidebar (if Google Drive is available)
 if use_google_drive and storage:
