@@ -744,47 +744,60 @@ st.markdown("""
         }
     }
     
-    /* Column layouts - ensure they stack on mobile */
+    /* Column layouts - optimize for mobile */
     @media screen and (max-width: 768px) {
-        /* Force single column layout for metrics on mobile */
-        .element-container:has([data-testid="stMetric"]) {
-            width: 100% !important;
-            margin-bottom: 0.75rem;
-            padding: 0.5rem;
+        /* Metrics in 2x2 grid on mobile for better space usage */
+        /* Target rows that contain metrics */
+        .row-widget.stHorizontal {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            gap: 0.5rem !important;
         }
         
-        /* Make Streamlit columns stack on mobile - override any inline styles */
-        [data-testid="column"] {
+        /* For rows with exactly 4 columns (like Key Metrics), use 2x2 grid */
+        .row-widget.stHorizontal [data-testid="column"]:nth-child(1),
+        .row-widget.stHorizontal [data-testid="column"]:nth-child(2),
+        .row-widget.stHorizontal [data-testid="column"]:nth-child(3),
+        .row-widget.stHorizontal [data-testid="column"]:nth-child(4) {
+            width: calc(50% - 0.25rem) !important;
+            flex: 0 0 calc(50% - 0.25rem) !important;
+            min-width: calc(50% - 0.25rem) !important;
+            max-width: calc(50% - 0.25rem) !important;
+            margin-bottom: 0.5rem !important;
+            margin-right: 0 !important;
+            padding: 0 !important;
+        }
+        
+        /* Every 2nd column (2, 4, 6...) - no special treatment needed with gap */
+        /* For rows with 2 or 3 columns, stack them */
+        .row-widget.stHorizontal [data-testid="column"]:only-child,
+        .row-widget.stHorizontal [data-testid="column"]:nth-child(n+5) {
             width: 100% !important;
             flex: 1 1 100% !important;
             min-width: 100% !important;
             max-width: 100% !important;
-            margin-bottom: 1rem !important;
-            padding: 0 !important;
+            margin-right: 0 !important;
         }
         
-        /* Ensure row containers wrap and stack vertically */
-        .row-widget.stHorizontal {
-            flex-direction: column !important;
-            display: flex !important;
-        }
-        
-        /* Settings row - stack on mobile */
-        div[data-testid="column"]:has(input),
-        div[data-testid="column"]:has(button),
-        div[data-testid="column"]:has(.stNumberInput),
-        div[data-testid="column"]:has(.stButton) {
+        /* Settings row and other non-metric rows - stack vertically */
+        /* Use more specific selectors for better compatibility */
+        .row-widget.stHorizontal [data-testid="column"] .stNumberInput,
+        .row-widget.stHorizontal [data-testid="column"] .stButton,
+        .row-widget.stHorizontal [data-testid="column"] .stSelectbox,
+        .row-widget.stHorizontal [data-testid="column"] input,
+        .row-widget.stHorizontal [data-testid="column"] button {
             width: 100% !important;
-            flex-basis: 100% !important;
         }
         
-        /* Specific fixes for common column layouts */
-        div[data-testid="column"]:nth-child(1),
-        div[data-testid="column"]:nth-child(2),
-        div[data-testid="column"]:nth-child(3),
-        div[data-testid="column"]:nth-child(4) {
+        /* Force full width for columns containing inputs/buttons */
+        .row-widget.stHorizontal [data-testid="column"]:has(.stNumberInput),
+        .row-widget.stHorizontal [data-testid="column"]:has(.stButton),
+        .row-widget.stHorizontal [data-testid="column"]:has(.stSelectbox) {
             width: 100% !important;
             flex: 1 1 100% !important;
+            min-width: 100% !important;
+            max-width: 100% !important;
+            margin-right: 0 !important;
         }
     }
     
@@ -905,8 +918,39 @@ st.markdown("""
         
         /* Metrics - better spacing on mobile */
         [data-testid="stMetricContainer"] {
-            padding: 0.75rem !important;
-            margin-bottom: 0.75rem !important;
+            padding: 0.5rem !important;
+            margin-bottom: 0.5rem !important;
+        }
+        
+        /* Compact metrics for 2x2 grid */
+        [data-testid="stMetric"] {
+            padding: 0.5rem !important;
+        }
+        
+        [data-testid="stMetricValue"] {
+            font-size: 1.3rem !important;
+            line-height: 1.2 !important;
+        }
+        
+        [data-testid="stMetricLabel"] {
+            font-size: 0.75rem !important;
+            margin-bottom: 0.25rem !important;
+        }
+        
+        [data-testid="stMetricDelta"] {
+            font-size: 0.7rem !important;
+            margin-top: 0.25rem !important;
+        }
+        
+        /* Ensure metric containers don't overflow */
+        [data-testid="stMetricContainer"] {
+            overflow: hidden !important;
+        }
+        
+        /* Better spacing for metric cards in grid */
+        [data-testid="column"] [data-testid="stMetricContainer"] {
+            height: auto !important;
+            min-height: 80px !important;
         }
         
         /* Reduce padding in main content area */
