@@ -1,4 +1,0 @@
-# Additional system packages (if needed)
-# This file is used by some deployment platforms
-# Most platforms will install packages from requirements.txt automatically
-
