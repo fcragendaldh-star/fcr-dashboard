@@ -1587,8 +1587,12 @@ with tab1:
 with tab2:
     st.markdown("## 📈 Total Pendency Summary")
     
-    # Group by Sub Division for charts
-    snapshot_grouped = latest_snapshot.groupby("Sub Division", as_index=False)["Total"].sum().sort_values("Total", ascending=False)
+    # Group by Sub Division for charts - ensure proper numeric sorting
+    snapshot_grouped = latest_snapshot.groupby("Sub Division", as_index=False)["Total"].sum()
+    # Ensure Total is numeric before sorting
+    snapshot_grouped["Total"] = pd.to_numeric(snapshot_grouped["Total"], errors="coerce").fillna(0).astype(float)
+    # Sort by Total in descending order (highest first)
+    snapshot_grouped = snapshot_grouped.sort_values("Total", ascending=False, ignore_index=True)
 
     # Layout: Left charts, right KPIs
     left, right = st.columns([3,1])
