@@ -15,14 +15,51 @@ class GoogleDriveStorage:
     """Google Drive Storage Implementation"""
     
     def __init__(self):
-        self.folder_id = os.getenv("GOOGLE_DRIVE_FOLDER_ID", "")
-        self.credentials_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON", "")
+        # Try to get secrets from Streamlit first (for Streamlit Cloud)
+        # Then fall back to environment variables (for local development)
+        self.folder_id = ""
+        self.credentials_json = ""
         
+        # Try Streamlit secrets first
+        try:
+            import streamlit as st
+            try:
+                # Access Streamlit secrets - they're available as a dict-like object
+                self.folder_id = st.secrets["GOOGLE_DRIVE_FOLDER_ID"]
+                self.credentials_json = st.secrets["GOOGLE_APPLICATION_CREDENTIALS_JSON"]
+                logger.info("✓ Loaded credentials from Streamlit secrets")
+            except KeyError as e:
+                logger.warning(f"Secret key not found in st.secrets: {e}")
+            except Exception as e:
+                logger.warning(f"Error accessing st.secrets: {e}")
+        except ImportError:
+            logger.info("Streamlit not available, will use environment variables")
+        except Exception as e:
+            logger.warning(f"Unexpected error accessing Streamlit: {e}")
+        
+        # Fall back to environment variables if Streamlit secrets not available
         if not self.folder_id:
-            raise ValueError("GOOGLE_DRIVE_FOLDER_ID environment variable not set")
+            self.folder_id = os.getenv("GOOGLE_DRIVE_FOLDER_ID", "")
+            if self.folder_id:
+                logger.info("✓ Loaded GOOGLE_DRIVE_FOLDER_ID from environment variable")
+        if not self.credentials_json:
+            self.credentials_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON", "")
+            if self.credentials_json:
+                logger.info("✓ Loaded GOOGLE_APPLICATION_CREDENTIALS_JSON from environment variable")
+        
+        # Validate that we have both required values
+        if not self.folder_id:
+            error_msg = "GOOGLE_DRIVE_FOLDER_ID not set in Streamlit secrets or environment variables"
+            logger.error(f"❌ {error_msg}")
+            raise ValueError(error_msg)
         
         if not self.credentials_json:
-            raise ValueError("GOOGLE_APPLICATION_CREDENTIALS_JSON environment variable not set")
+            error_msg = "GOOGLE_APPLICATION_CREDENTIALS_JSON not set in Streamlit secrets or environment variables"
+            logger.error(f"❌ {error_msg}")
+            raise ValueError(error_msg)
+        
+        logger.info(f"✓ Folder ID: {self.folder_id[:20]}...")
+        logger.info(f"✓ Credentials JSON length: {len(self.credentials_json)} characters")
         
         # Initialize Google Drive API client
         try:
@@ -32,7 +69,27 @@ class GoogleDriveStorage:
             from googleapiclient.errors import HttpError
             
             # Parse credentials from JSON string
-            creds_dict = json.loads(self.credentials_json)
+            try:
+                # Try to parse as JSON string first
+                if isinstance(self.credentials_json, str):
+                    creds_dict = json.loads(self.credentials_json)
+                else:
+                    # Already a dict
+                    creds_dict = self.credentials_json
+            except json.JSONDecodeError as e:
+                error_msg = f"Invalid JSON in GOOGLE_APPLICATION_CREDENTIALS_JSON: {str(e)}"
+                logger.error(f"❌ {error_msg}")
+                logger.error(f"JSON preview (first 100 chars): {self.credentials_json[:100]}")
+                raise ValueError(error_msg)
+            
+            # Validate required fields
+            required_fields = ['type', 'project_id', 'private_key', 'client_email']
+            missing_fields = [field for field in required_fields if field not in creds_dict]
+            if missing_fields:
+                error_msg = f"Missing required fields in credentials: {', '.join(missing_fields)}"
+                logger.error(f"❌ {error_msg}")
+                raise ValueError(error_msg)
+            
             credentials = service_account.Credentials.from_service_account_info(
                 creds_dict,
                 scopes=['https://www.googleapis.com/auth/drive']
@@ -43,11 +100,14 @@ class GoogleDriveStorage:
             self.MediaIoBaseUpload = MediaIoBaseUpload
             self.HttpError = HttpError
             
-            logger.info("Google Drive API initialized successfully")
+            logger.info("✓ Google Drive API initialized successfully")
         except ImportError:
             raise ImportError("google-api-python-client and google-auth are required. Install with: pip install google-api-python-client google-auth")
+        except ValueError:
+            # Re-raise ValueError as-is (already formatted)
+            raise
         except Exception as e:
-            logger.error(f"Error initializing Google Drive API: {e}")
+            logger.error(f"❌ Error initializing Google Drive API: {e}")
             raise
     
     def list_files(self) -> List[dict]:

@@ -56,14 +56,23 @@ DATE_FORMAT = "%Y%m%d"
 # Initialize Google Drive storage if configured
 storage = None
 use_google_drive = False
+google_drive_error = None
 
 if GOOGLE_DRIVE_AVAILABLE:
     try:
         storage = GoogleDriveStorage()
         use_google_drive = True
-        logger.info("Google Drive storage initialized successfully")
+        logger.info("✓ Google Drive storage initialized successfully")
+    except ValueError as e:
+        # Missing configuration (secrets not set)
+        google_drive_error = str(e)
+        logger.warning(f"⚠️ Google Drive not configured: {e}")
+        use_google_drive = False
+        DATA_FOLDER.mkdir(exist_ok=True)
     except Exception as e:
-        logger.warning(f"Google Drive not configured, using local storage: {e}")
+        # Other errors (API errors, network issues, etc.)
+        google_drive_error = f"Failed to initialize: {str(e)}"
+        logger.error(f"❌ Google Drive initialization error: {e}")
         use_google_drive = False
         DATA_FOLDER.mkdir(exist_ok=True)
 else:
@@ -161,7 +170,7 @@ def _load_all_files_core(folder_path: str = None) -> pd.DataFrame:
     failed_files = []
     
     # Load from Google Drive if configured
-    if use_google_drive and storage:
+    if use_google_drive and storage and folder_path is None:
         try:
             logger.info("Loading files from Google Drive...")
             drive_files = storage.list_files()
@@ -170,32 +179,38 @@ def _load_all_files_core(folder_path: str = None) -> pd.DataFrame:
                 logger.info("No Excel files found in Google Drive folder")
                 return pd.DataFrame()
             
-            for file_info in drive_files:
-                filename = file_info['name']
-                file_id = file_info['id']
+            logger.info(f"Found {len(drive_files)} files in Google Drive")
+            
+            # Process each file from Google Drive
+            for drive_file in drive_files:
+                file_name = drive_file.get('name', '')
+                file_id = drive_file.get('id', '')
                 
-                if filename.startswith("~$"):
+                # Skip non-Excel files
+                if not file_name.endswith(('.xlsx', '.xls')):
                     continue
                 
                 try:
                     # Download file from Google Drive
+                    logger.info(f"Downloading file: {file_name}")
                     file_data = storage.download_file(file_id)
-                    if not file_data.getvalue():
-                        logger.warning(f"File {filename} is empty, skipping")
-                        failed_files.append((filename, "Empty file"))
+                    
+                    if file_data.getvalue() == b'':
+                        logger.warning(f"File {file_name} is empty, skipping")
+                        failed_files.append((file_name, "Empty file"))
                         continue
                     
                     # Read Excel file from bytes
                     try:
                         df = pd.read_excel(file_data, engine="openpyxl")
                     except Exception as e:
-                        logger.warning(f"Failed to read {filename} with default sheet, trying first sheet: {e}")
-                        file_data.seek(0)
+                        logger.warning(f"Failed to read {file_name} with default sheet, trying first sheet: {e}")
+                        file_data.seek(0)  # Reset file pointer
                         df = pd.read_excel(file_data, sheet_name=0, engine="openpyxl")
                     
                     if df.empty:
-                        logger.warning(f"File {filename} is empty, skipping")
-                        failed_files.append((filename, "Empty file"))
+                        logger.warning(f"File {file_name} is empty, skipping")
+                        failed_files.append((file_name, "Empty file"))
                         continue
                     
                     # Normalize column names
@@ -214,29 +229,41 @@ def _load_all_files_core(folder_path: str = None) -> pd.DataFrame:
                             df.rename(columns={match[0]: "Sub Division"}, inplace=True)
                     
                     # Validate dataframe
-                    is_valid, error_msg = validate_dataframe(df, filename)
+                    is_valid, error_msg = validate_dataframe(df, file_name)
                     if not is_valid:
-                        logger.warning(f"Validation failed for {filename}: {error_msg}")
-                        failed_files.append((filename, error_msg))
+                        logger.warning(f"Validation failed for {file_name}: {error_msg}")
+                        failed_files.append((file_name, error_msg))
                         continue
                     
                     # Parse date from filename
-                    m = FILENAME_DATE_RE.search(filename)
+                    m = FILENAME_DATE_RE.search(file_name)
                     file_date = pd.to_datetime(m.group(1), format=DATE_FORMAT) if m else pd.NaT
                     if pd.isna(file_date):
-                        logger.warning(f"Could not parse date from filename: {filename}")
+                        logger.warning(f"Could not parse date from filename: {file_name}")
                     
-                    df["__source_file"] = filename
+                    df["__source_file"] = file_name
                     df["__date"] = file_date
                     rows.append(df)
+                    logger.info(f"Successfully processed file: {file_name}")
                     
                 except Exception as e:
-                    logger.error(f"Error processing file {filename}: {str(e)}")
-                    failed_files.append((filename, str(e)))
+                    logger.error(f"Error processing file {file_name} from Google Drive: {str(e)}")
+                    failed_files.append((file_name, str(e)))
                     continue
+            
+            # If we successfully loaded files from Google Drive, skip local loading
+            if rows:
+                logger.info(f"Successfully loaded {len(rows)} files from Google Drive")
+            elif failed_files:
+                logger.error(f"All Google Drive files failed to load. Failed: {failed_files}")
+                return pd.DataFrame()
+            else:
+                logger.warning("No files were processed from Google Drive")
+                return pd.DataFrame()
+                
         except Exception as e:
             logger.error(f"Error loading from Google Drive: {e}")
-            # Fall back to local if Google Drive fails
+            # Fall back to local if Google Drive fails and folder_path is provided
             if folder_path:
                 logger.info("Falling back to local file loading...")
             else:
@@ -248,15 +275,16 @@ def _load_all_files_core(folder_path: str = None) -> pd.DataFrame:
             folder = Path(folder_path)
             if not folder.exists():
                 logger.warning(f"Data folder does not exist: {folder}")
-                if not rows:
+                if not rows:  # Only return empty if we have no data from Google Drive either
                     return pd.DataFrame()
             else:
                 files = sorted(folder.glob("*.xlsx"))
                 if not files:
                     logger.info(f"No Excel files found in {folder}")
-                    if not rows:
+                    if not rows:  # Only return empty if we have no data from Google Drive either
                         return pd.DataFrame()
                 else:
+                    # Process local files
                     for f in files:
                         # Skip temporary Excel files (lock files created by Excel when file is open)
                         if f.name.startswith("~$"):
@@ -964,43 +992,50 @@ if not df_all.empty and current_file_hash:
 if df_all.empty:
     st.error("❌ No data available.")
     
+    # Provide helpful troubleshooting based on storage type
     if use_google_drive and storage:
-        st.info(f"""
-        **Troubleshooting (Google Drive):**
-        - Ensure Excel files (`.xlsx`) are in your Google Drive folder
-        - File names should contain dates in `YYYYMMDD` format (e.g., `FCR_Agenda_20251104.xlsx`)
-        - Files should contain required columns: `Sub Division`, `Officer`, and pendency columns
-        - Verify your Google Drive folder is shared with the service account
-        - Click the **🔄 Reload Data** button to refresh
-        - Check the logs for detailed error messages
+        st.info("""
+        **Troubleshooting Google Drive:**
+        1. Check that Excel files are uploaded to your Google Drive folder
+        2. Verify files have `.xlsx` or `.xls` extension
+        3. Ensure files contain required columns: `Sub Division`, `Officer`, `Total`
+        4. Check the Storage Status in the sidebar for file count
+        5. Click "🔄 Reload Data" to refresh
         """)
     else:
-        st.info(f"""
+        st.info("""
         **Troubleshooting:**
-        - Ensure Excel files (`.xlsx`) are in the `{DATA_FOLDER.absolute()}` folder
-        - File names should contain dates in `YYYYMMDD` format (e.g., `FCR_Agenda_20251104.xlsx`)
-        - Files should contain required columns: `Sub Division`, `Officer`, and pendency columns
-        - Click the **🔄 Reload Data** button to refresh
-        - Check the logs for detailed error messages
-        
-        **💡 Tip:** To use Google Drive, configure `GOOGLE_DRIVE_FOLDER_ID` and `GOOGLE_APPLICATION_CREDENTIALS_JSON` in Streamlit Cloud secrets.
+        1. Ensure Excel files are in the data folder
+        2. Verify files have `.xlsx` or `.xls` extension
+        3. Ensure files contain required columns: `Sub Division`, `Officer`, `Total`
+        4. Click "🔄 Reload Data" to refresh
         """)
+    
     st.stop()
 
 # Google Drive Status in Sidebar
-if GOOGLE_DRIVE_AVAILABLE:
-    if use_google_drive and storage:
-        st.sidebar.success("✅ Google Drive: Connected")
-        try:
-            drive_files = storage.list_files()
-            st.sidebar.info(f"📁 {len(drive_files)} file(s) in Google Drive")
-        except:
-            st.sidebar.warning("⚠️ Google Drive: Could not list files")
-    else:
-        st.sidebar.warning("⚠️ Google Drive: Not configured")
-        st.sidebar.caption("Add secrets in Streamlit Cloud to enable")
+st.sidebar.header("📊 Storage Status")
+if use_google_drive and storage:
+    st.sidebar.success("✅ Google Drive Connected")
+    try:
+        drive_files = storage.list_files()
+        file_count = len(drive_files)
+        st.sidebar.info(f"📁 Files in Drive: {file_count}")
+        if file_count == 0:
+            st.sidebar.warning("⚠️ No Excel files found in Google Drive folder")
+    except Exception as e:
+        st.sidebar.error(f"❌ Error accessing Google Drive: {str(e)}")
+elif google_drive_error:
+    st.sidebar.error("❌ Google Drive Not Connected")
+    with st.sidebar.expander("🔍 Error Details"):
+        st.error(google_drive_error)
+        st.info("💡 **To fix:**\n1. Go to Streamlit Cloud Settings → Secrets\n2. Add `GOOGLE_DRIVE_FOLDER_ID`\n3. Add `GOOGLE_APPLICATION_CREDENTIALS_JSON`\n4. Wait 1-2 minutes for app to redeploy")
 else:
-    st.sidebar.info("💡 Google Drive: Not available (dependencies missing)")
+    st.sidebar.info("📂 Using Local Storage")
+    if DATA_FOLDER.exists():
+        local_files = list(DATA_FOLDER.glob("*.xlsx"))
+        file_count = len([f for f in local_files if not f.name.startswith("~$")])
+        st.sidebar.info(f"📁 Local files: {file_count}")
 
 # File Upload Section in Sidebar (if Google Drive is available)
 if use_google_drive and storage:
