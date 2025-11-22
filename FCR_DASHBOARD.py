@@ -1763,7 +1763,14 @@ else:
                             )
                             fig_officer.update_xaxes(showgrid=False, showticklabels=False)
                             fig_officer.update_yaxes(showgrid=False, showticklabels=False)
-                            st.plotly_chart(fig_officer, use_container_width=True)
+                            st.plotly_chart(
+                                fig_officer,
+                                width='stretch',
+                                config={
+                                    "displayModeBar": False,
+                                    "displaylogo": False,
+                                },
+                            )
                         else:
                             # Custom colored progress bar (fallback when no trend data)
                             progress_value = min(pct_of_total / 100, 1.0)
