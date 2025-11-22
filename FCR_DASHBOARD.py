@@ -1829,6 +1829,13 @@ else:
     with col_viz1:
         st.markdown("### 📈 Trend Overview")
         total_trend = agg_by_sub.groupby("__date", as_index=False)["Total"].sum().sort_values("__date")
+
+        # Limit to last 7 available dates for readability
+        if not total_trend.empty:
+            unique_dates = total_trend["__date"].dropna().unique()
+            last_7_dates = unique_dates[-7:]
+            total_trend = total_trend[total_trend["__date"].isin(last_7_dates)]
+
         if not total_trend.empty and len(total_trend) > 1:
             fig_trend = px.line(
                 total_trend, x="__date", y="Total", markers=True,
@@ -1851,14 +1858,12 @@ else:
                 autosize=True,
                 margin=dict(l=50, r=20, t=30, b=50),
                 xaxis=dict(
-                    dtick=86400000,  # Daily scale (milliseconds in a day)
                     tickformat="%Y-%m-%d",  # Date format
-                    tickmode="linear",
                     gridcolor='rgba(128,128,128,0.2)'
                 ),
                 yaxis=dict(gridcolor='rgba(128,128,128,0.2)')
             )
-            st.plotly_chart(fig_trend, use_container_width=True, config={'displayModeBar': False, 'responsive': True})
+            st.plotly_chart(fig_trend, width='stretch', config={'displayModeBar': False, 'responsive': True})
         else:
             st.info("Insufficient data for trend")
     
