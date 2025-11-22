@@ -970,44 +970,6 @@ with tab1:
                             change_icon = get_trend_icon(subdiv_change)
                             change_color = "#dc3545" if subdiv_change > 0 else "#28a745"
                             st.markdown(f"<p style='color: {change_color}; font-size: 0.85rem; margin: 0.25rem 0;'>{change_icon} {subdiv_change:+.1f}% vs previous</p>", unsafe_allow_html=True)
-                    with col_bar:
-                        st.progress(min(pct_of_total / 100, 1.0))
-            else:
-                st.info("No data available")
-            
-            # Top Officers with Most Pendencies
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.markdown("### 👤 Top 5 Officers by Pendency")
-            if not latest_snapshot.empty:
-                # Sort by Total descending and take top 5 rows
-                # Each row represents a unique officer-location combination
-                top_officers = latest_snapshot.nlargest(5, "Total")
-                
-                if not top_officers.empty:
-                    # Display in clean format
-                    for idx, row in top_officers.iterrows():
-                        officer = row["Officer"]
-                        officer_total = int(row["Total"])
-                        subdiv = row.get("Sub Division", "Unknown")
-                        tehsil = row.get("Tehsil/Sub Tehsil", "N/A") if pd.notna(row.get("Tehsil/Sub Tehsil", None)) else "N/A"
-                        pct_of_total = (officer_total / total_latest * 100) if total_latest > 0 else 0
-                        
-                        
-                        col_officer, col_officer_bar = st.columns([3, 2])
-                        with col_officer:
-                            st.markdown(f"<p style='font-size: 0.95rem; font-weight: 600; color: #003366; margin: 0.25rem 0;'><strong>{subdiv}</strong> - <strong>{tehsil}</strong> - <strong>{officer}</strong></p>", unsafe_allow_html=True)
-                            st.markdown(f"<p style='font-size: 1rem; color: #333; margin: 0.25rem 0;'><strong>{format_number(officer_total)}</strong> <span style='color: #666; font-size: 0.85rem;'>({pct_of_total:.1f}% of total)</span></p>", unsafe_allow_html=True)
-                        with col_officer_bar:
-                            st.progress(min(pct_of_total / 100, 1.0))
-                else:
-                    st.info("No officer data available")
-            else:
-                st.info("No data available")
-        
-        with col_right:
-            st.markdown("### 🔥 Critical Issues")
-            
-            # Top pendency type - clear styling
             if top_pendency_type[0] != "N/A":
                 st.markdown(f"<p style='font-weight: 600; color: #003366; margin: 0.5rem 0;'>Top Issue:</p>", unsafe_allow_html=True)
                 st.markdown(f"<p style='font-size: 1rem; font-weight: 600; color: #333; margin: 0.5rem 0;'>{top_pendency_type[0]}</p>", unsafe_allow_html=True)

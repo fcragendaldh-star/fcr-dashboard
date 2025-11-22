@@ -1716,35 +1716,77 @@ else:
                     tehsil = row.get("Tehsil/Sub Tehsil", "N/A") if pd.notna(row.get("Tehsil/Sub Tehsil", None)) else "N/A"
                     pct_of_total = (officer_total / total_latest * 100) if total_latest > 0 else 0
                     progress_color = officer_colors[rank_idx] if rank_idx < 5 else officer_colors[4]
-                    
-                    
-                    col_officer, col_officer_bar = st.columns([3, 2])
-                    with col_officer:
-                        st.markdown(f"<p style='font-size: 0.95rem; font-weight: 600; color: #003366; margin: 0.25rem 0;'><strong>{subdiv}</strong> - <strong>{tehsil}</strong> - <strong>{officer}</strong></p>", unsafe_allow_html=True)
-                        st.markdown(f"<p style='font-size: 1rem; color: #333; margin: 0.25rem 0;'><strong>{format_number(officer_total)}</strong> <span style='color: #666; font-size: 0.85rem;'>({pct_of_total:.1f}% of total)</span></p>", unsafe_allow_html=True)
-                    with col_officer_bar:
-                        # Custom colored progress bar
-                        progress_value = min(pct_of_total / 100, 1.0)
-                        st.markdown(
-                            f"""
-                            <div style="
-                                width: 100%;
-                                height: 1.5rem;
-                                background-color: #e0e0e0;
-                                border-radius: 0.25rem;
-                                overflow: hidden;
-                                margin-top: 0.5rem;
-                            ">
-                                <div style="
-                                    width: {progress_value * 100}%;
-                                    height: 100%;
-                                    background-color: {progress_color};
-                                    transition: width 0.3s ease;
-                                "></div>
-                            </div>
-                            """,
-                            unsafe_allow_html=True
+
+                    # Build historical trend for this officer using the filtered dataframe df
+                    officer_mask = (df["Officer"].astype(str) == str(officer)) & (df["Sub Division"].astype(str) == str(subdiv))
+                    if "Tehsil/Sub Tehsil" in df.columns and pd.notna(row.get("Tehsil/Sub Tehsil", None)):
+                        officer_mask = officer_mask & (df["Tehsil/Sub Tehsil"].astype(str) == str(tehsil))
+                    officer_history = df[officer_mask].copy()
+
+                    officer_trend = pd.DataFrame()
+                    if not officer_history.empty and "__date" in officer_history.columns:
+                        officer_trend = (
+                            officer_history.groupby("__date", as_index=False)["Total"]
+                            .sum()
+                            .sort_values("__date")
                         )
+
+                    col_officer, col_officer_right = st.columns([3, 2])
+                    with col_officer:
+                        st.markdown(
+                            f"<p style='font-size: 0.95rem; font-weight: 600; color: #003366; margin: 0.25rem 0;'><strong>{subdiv}</strong> - <strong>{tehsil}</strong> - <strong>{officer}</strong></p>",
+                            unsafe_allow_html=True,
+                        )
+                        st.markdown(
+                            f"<p style='font-size: 1rem; color: #333; margin: 0.25rem 0;'><strong>{format_number(officer_total)}</strong> <span style='color: #666; font-size: 0.85rem;'>({pct_of_total:.1f}% of total)</span></p>",
+                            unsafe_allow_html=True,
+                        )
+                    with col_officer_right:
+                        # Show a minimalist trend chart when we have data; otherwise fall back to colored bar
+                        if not officer_trend.empty and officer_trend["Total"].sum() > 0:
+                            fig_officer = px.line(
+                                officer_trend,
+                                x="__date",
+                                y="Total",
+                                markers=True,
+                                color_discrete_sequence=[progress_color],
+                            )
+                            fig_officer.update_traces(line=dict(width=2), marker=dict(size=5))
+                            fig_officer.update_layout(
+                                height=120,
+                                margin=dict(l=10, r=10, t=10, b=10),
+                                showlegend=False,
+                                xaxis_title=None,
+                                yaxis_title=None,
+                                plot_bgcolor="rgba(0,0,0,0)",
+                                paper_bgcolor="rgba(0,0,0,0)",
+                            )
+                            fig_officer.update_xaxes(showgrid=False, showticklabels=False)
+                            fig_officer.update_yaxes(showgrid=False, showticklabels=False)
+                            st.plotly_chart(fig_officer, use_container_width=True)
+                        else:
+                            # Custom colored progress bar (fallback when no trend data)
+                            progress_value = min(pct_of_total / 100, 1.0)
+                            st.markdown(
+                                f"""
+                                <div style="
+                                    width: 100%;
+                                    height: 1.5rem;
+                                    background-color: #e0e0e0;
+                                    border-radius: 0.25rem;
+                                    overflow: hidden;
+                                    margin-top: 0.5rem;
+                                ">
+                                    <div style="
+                                        width: {progress_value * 100}%;
+                                        height: 100%;
+                                        background-color: {progress_color};
+                                        transition: width 0.3s ease;
+                                    "></div>
+                                </div>
+                                """,
+                                unsafe_allow_html=True,
+                            )
             else:
                 st.info("No officer data available")
         else:
