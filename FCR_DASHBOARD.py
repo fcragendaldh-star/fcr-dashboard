@@ -1588,7 +1588,8 @@ else:
     
     with col1:
         delta_text = f"{total_change:+.1f}%" if previous_date else None
-        delta_color = "inverse" if total_change > 0 else "normal"
+        # For pendency: drop (negative change) is good -> green; rise (positive) is bad -> red
+        delta_color = "inverse" if total_change < 0 else "normal"
         st.metric("Total Pendency", format_number(total_latest), delta=delta_text, delta_color=delta_color)
         if previous_date:
             st.caption(f"vs {previous_date.strftime('%b %d')}")
@@ -1780,7 +1781,7 @@ else:
                                 paper_bgcolor="rgba(0,0,0,0)",
                             )
                             fig_officer.update_xaxes(showgrid=False, showticklabels=False)
-                            fig_officer.update_yaxes(showgrid=False, showticklabels=False)
+                            fig_officer.update_yaxes(rangemode="tozero", showgrid=False, showticklabels=False)
                             st.plotly_chart(
                                 fig_officer,
                                 width='stretch',
