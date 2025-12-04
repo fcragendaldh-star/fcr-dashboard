@@ -365,7 +365,7 @@ def _load_all_files_uncached(folder_path: str = None) -> pd.DataFrame:
     return _load_all_files_core(folder_path)
 
 # Cached version for normal operation
-@st.cache_data(ttl=300, show_spinner="Loading data files...")
+@st.cache_data(ttl=1800, show_spinner="Loading data files...")
 def load_all_files(folder_path: str = None, cache_version: str = "v1") -> pd.DataFrame:
     """
     Load all Excel files from Google Drive or local folder.
@@ -1082,20 +1082,12 @@ with header_col2:
     
     refresh = st.session_state.get("refresh_requested", False)
 
-# Generate cache key based on files in folder/Google Drive to detect new files
+# Generate cache key based on files in local folder.
+# For Google Drive, we rely on the Reload button and Streamlit cache instead of
+# scanning Drive on every rerun (which is slow).
 if use_google_drive and storage:
-    try:
-        drive_files = storage.list_files()
-        # Use file names and modification times for cache key
-        file_info = [(f['name'], f.get('modifiedTime', '')) for f in drive_files]
-        file_info_sorted = tuple(sorted(file_info))
-        current_file_hash = str(hash(file_info_sorted))
-        current_file_hash = f"{current_file_hash}_{len(file_info)}"
-        files_changed = (st.session_state.last_file_hash is None or 
-                         st.session_state.last_file_hash != current_file_hash)
-    except:
-        current_file_hash = None
-        files_changed = False
+    current_file_hash = None
+    files_changed = False
 elif DATA_FOLDER.exists():
     files_in_folder = sorted([f.name for f in DATA_FOLDER.glob("*.xlsx") if not f.name.startswith("~$")])
     # Use file names, modification times, and file sizes for cache key (more reliable detection)
@@ -1493,7 +1485,6 @@ if selected_tehsils and "Tehsil/Sub Tehsil" in df.columns:
 if selected_officers:
     df = df[df["Officer"].astype(str).isin(selected_officers)]
     filter_applied = True
-
 
 # Aggregate for visuals
 agg_by_sub = df.groupby(["__date", "Sub Division"], as_index=False)["Total"].sum()
