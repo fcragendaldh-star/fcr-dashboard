@@ -141,14 +141,41 @@ def _load_all_files_core(folder_path: str = None) -> pd.DataFrame:
                 logger.info("No Excel files found in Google Drive folder")
                 return pd.DataFrame()
             
-            logger.info(f"Found {len(drive_files)} files in Google Drive")
+            # Keep only Excel files
+            excel_files = [
+                f for f in drive_files
+                if str(f.get("name", "")).lower().endswith((".xlsx", ".xls"))
+            ]
             
-            # Process each file from Google Drive
-            for drive_file in drive_files:
+            if not excel_files:
+                logger.info("No Excel files with .xlsx/.xls extension found in Google Drive folder")
+                return pd.DataFrame()
+            
+            # Sort Excel files by date in filename (YYYYMMDD) if present, otherwise by name
+            def _extract_date_key(f):
+                name = str(f.get("name", ""))
+                m = FILENAME_DATE_RE.search(name)
+                if m:
+                    try:
+                        return pd.to_datetime(m.group(1), format=DATE_FORMAT)
+                    except Exception:
+                        pass
+                # Fallback: sort by name
+                return name
+
+            excel_files_sorted = sorted(excel_files, key=_extract_date_key)
+            
+            # Take only the last 5 (most recent) Excel files
+            recent_excel_files = excel_files_sorted[-5:]
+            
+            logger.info(f"Found {len(excel_files)} Excel files in Google Drive, loading last {len(recent_excel_files)}")
+            
+            # Process only the selected recent files
+            for drive_file in recent_excel_files:
                 file_name = drive_file.get('name', '')
                 file_id = drive_file.get('id', '')
                 
-                # Skip non-Excel files
+                # Skip non-Excel files (safety check)
                 if not file_name.endswith(('.xlsx', '.xls')):
                     continue
                 
