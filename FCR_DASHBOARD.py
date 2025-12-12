@@ -1589,7 +1589,7 @@ else:
     with col1:
         delta_text = f"{total_change:+.1f}%" if previous_date else None
         # For pendency: drop (negative change) is good -> green; rise (positive) is bad -> red
-        delta_color = "inverse" if total_change < 0 else "normal"
+        delta_color = "inverse"
         st.metric("Total Pendency", format_number(total_latest), delta=delta_text, delta_color=delta_color)
         if previous_date:
             st.caption(f"vs {previous_date.strftime('%b %d')}")
