@@ -1887,7 +1887,11 @@ else:
                     tickformat="%Y-%m-%d",  # Date format
                     gridcolor='rgba(128,128,128,0.2)'
                 ),
-                yaxis=dict(gridcolor='rgba(128,128,128,0.2)')
+                yaxis=dict(
+                    gridcolor='rgba(128,128,128,0.2)',
+                    dtick=100,
+                    rangemode="tozero"
+                )
             )
             st.plotly_chart(fig_trend, width='stretch', config={'displayModeBar': False, 'responsive': True})
         else:
