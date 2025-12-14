@@ -1889,7 +1889,7 @@ else:
                 ),
                 yaxis=dict(
                     gridcolor='rgba(128,128,128,0.2)',
-                    dtick=100,
+                    dtick=200,
                     rangemode="tozero"
                 )
             )
